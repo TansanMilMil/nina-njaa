@@ -1,8 +1,8 @@
 {
-  "name": "nina-njaa-page",
+  "name": "nina-njaa",
   "dockerComposeFile": "docker-compose.yml",
   "service": "workspace",
-  "workspaceFolder": "/workspaces/nina-njaa-page",
+  "workspaceFolder": "/workspaces/nina-njaa",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "moby": true,
