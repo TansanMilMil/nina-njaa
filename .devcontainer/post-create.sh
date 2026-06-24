@@ -1,0 +1,15 @@
+#!/bin/bash
+set -e
+
+# SSH known hosts
+mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+# Frontend
+cd /workspaces/nina-njaa-page/frontend
+npm install
+
+# Backend
+cd /workspaces/nina-njaa-page/backend
+pip install -r requirements.txt
+
+echo "Post-create setup complete!"

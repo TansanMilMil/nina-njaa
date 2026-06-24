@@ -1,0 +1,46 @@
+version: "3"
+
+tasks:
+  default:
+    desc: "タスク一覧を表示"
+    cmds:
+      - task --list
+
+  dev:
+    desc: "フロントエンドとバックエンドを同時に起動"
+    deps: [dev:frontend, dev:backend]
+
+  dev:frontend:
+    desc: "Vite 開発サーバーを起動"
+    dir: frontend
+    cmds:
+      - npm run dev
+
+  dev:backend:
+    desc: "FastAPI サーバーを起動 (port 8000)"
+    dir: backend
+    cmds:
+      - uvicorn main:app --reload
+
+  install:
+    desc: "フロントエンドの依存パッケージをインストール"
+    dir: frontend
+    cmds:
+      - npm install
+
+  build:
+    desc: "フロントエンドをビルド"
+    dir: frontend
+    cmds:
+      - npm run build
+
+  preview:
+    desc: "ビルド済みフロントエンドをプレビュー"
+    dir: frontend
+    cmds:
+      - npm run preview
+
+  setup:
+    desc: "初回セットアップ (npm install + DB コピー)"
+    cmds:
+      - task: install

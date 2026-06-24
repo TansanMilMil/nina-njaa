@@ -1,0 +1,14 @@
+services:
+  workspace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspaces/nina-njaa-page:cached
+    command: sleep infinity
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    driver: bridge
