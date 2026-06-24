@@ -10,6 +10,7 @@ npm install
 
 # Backend
 cd /workspaces/nina-njaa-page/backend
-pip install -r requirements.txt
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 
 echo "Post-create setup complete!"
