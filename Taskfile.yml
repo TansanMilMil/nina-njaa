@@ -71,3 +71,12 @@ tasks:
     desc: "サービスの稼働状況を確認"
     cmds:
       - docker compose ps
+
+  db:backup:
+    desc: "recipes.db を日時付きでバックアップ (./backups/ に保存)"
+    cmds:
+      - |
+        mkdir -p backups
+        dest="backups/recipes_$(date +%Y%m%d_%H%M%S).db"
+        cp backend/db/recipes.db "$dest"
+        echo "バックアップ完了: $dest"
