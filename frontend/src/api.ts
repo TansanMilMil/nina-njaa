@@ -48,15 +48,31 @@ export async function authFetch(input: string, init: RequestInit = {}): Promise<
   return res
 }
 
+function jsonInit(method: string, data: unknown): RequestInit {
+  return {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }
+}
+
+function assertOk(res: Response, message: string): void {
+  if (!res.ok) throw new Error(message)
+}
+
+async function fetchJsonOr<T>(path: string, fallback: T): Promise<T> {
+  const res = await authFetch(`${BASE}${path}`)
+  if (!res.ok) return fallback
+  return res.json()
+}
+
 export async function login(username: string, password: string): Promise<void> {
   const res = await fetch(`${BASE}/auth/login`, {
-    method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+    ...jsonInit('POST', { username, password }),
   })
   if (res.status === 401) throw new UnauthorizedError()
-  if (!res.ok) throw new Error('ログインに失敗しました')
+  assertOk(res, 'ログインに失敗しました')
 }
 
 export async function logout(): Promise<void> {
@@ -82,7 +98,7 @@ export async function searchRecipes(q: string): Promise<Recipe[]> {
 
 export async function getRecipe(id: number): Promise<RecipeDetail> {
   const res = await authFetch(`${BASE}/recipes/${id}`)
-  if (!res.ok) throw new Error('Not found')
+  assertOk(res, 'Not found')
   return res.json()
 }
 
@@ -105,12 +121,8 @@ export interface RecipeUpdatePayload {
 }
 
 export async function updateRecipe(id: number, data: RecipeUpdatePayload): Promise<RecipeDetail> {
-  const res = await authFetch(`${BASE}/recipes/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error('更新に失敗しました')
+  const res = await authFetch(`${BASE}/recipes/${id}`, jsonInit('PUT', data))
+  assertOk(res, '更新に失敗しました')
   return res.json()
 }
 
@@ -120,7 +132,7 @@ export async function recordRecipeViewed(id: number): Promise<void> {
 
 export async function deleteRecipe(id: number): Promise<void> {
   const res = await authFetch(`${BASE}/recipes/${id}`, { method: 'DELETE' })
-  if (!res.ok) throw new Error('削除に失敗しました')
+  assertOk(res, '削除に失敗しました')
 }
 
 export async function getRecipesByIds(ids: number[]): Promise<Recipe[]> {
@@ -129,21 +141,15 @@ export async function getRecipesByIds(ids: number[]): Promise<Recipe[]> {
 }
 
 export async function getIngredientSuggestions(): Promise<string[]> {
-  const res = await authFetch(`${BASE}/ingredients/suggestions`)
-  if (!res.ok) return []
-  return res.json()
+  return fetchJsonOr<string[]>('/ingredients/suggestions', [])
 }
 
 export async function getRecentViewedRecipes(): Promise<Recipe[]> {
-  const res = await authFetch(`${BASE}/history/recipes`)
-  if (!res.ok) return []
-  return res.json()
+  return fetchJsonOr<Recipe[]>('/history/recipes', [])
 }
 
 export async function getRecentViewedIngredients(): Promise<string[]> {
-  const res = await authFetch(`${BASE}/history/ingredients`)
-  if (!res.ok) return []
-  return res.json()
+  return fetchJsonOr<string[]>('/history/ingredients', [])
 }
 
 export class DuplicateUrlError extends Error {
@@ -154,11 +160,7 @@ export class DuplicateUrlError extends Error {
 }
 
 export async function importRecipeFromUrl(url: string): Promise<RecipeDetail> {
-  const res = await authFetch(`${BASE}/recipes/from-url`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
-  })
+  const res = await authFetch(`${BASE}/recipes/from-url`, jsonInit('POST', { url }))
   if (res.status === 409) throw new DuplicateUrlError()
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'レシピの生成に失敗しました' }))
@@ -168,9 +170,7 @@ export async function importRecipeFromUrl(url: string): Promise<RecipeDetail> {
 }
 
 export async function getRecipeBookmarks(): Promise<number[]> {
-  const res = await authFetch(`${BASE}/bookmarks/recipes`)
-  if (!res.ok) return []
-  return res.json()
+  return fetchJsonOr<number[]>('/bookmarks/recipes', [])
 }
 
 export async function addRecipeBookmark(id: number): Promise<void> {
@@ -182,23 +182,17 @@ export async function removeRecipeBookmark(id: number): Promise<void> {
 }
 
 export async function getIngredientBookmarks(): Promise<string[]> {
-  const res = await authFetch(`${BASE}/bookmarks/ingredients`)
-  if (!res.ok) return []
-  return res.json()
+  return fetchJsonOr<string[]>('/bookmarks/ingredients', [])
+}
+
+async function sendIngredientBookmark(method: 'POST' | 'DELETE', name: string): Promise<void> {
+  await authFetch(`${BASE}/bookmarks/ingredients`, jsonInit(method, { name }))
 }
 
 export async function addIngredientBookmark(name: string): Promise<void> {
-  await authFetch(`${BASE}/bookmarks/ingredients`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
-  })
+  await sendIngredientBookmark('POST', name)
 }
 
 export async function removeIngredientBookmark(name: string): Promise<void> {
-  await authFetch(`${BASE}/bookmarks/ingredients`, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
-  })
+  await sendIngredientBookmark('DELETE', name)
 }
