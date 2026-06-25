@@ -13,8 +13,11 @@ from pydantic import BaseModel
 from models import Recipe, RecipeCreate, RecipeDetail
 from repository.sqlite import SQLiteRecipeRepository
 
-BASIC_AUTH_USER = os.environ.get("BASIC_AUTH_USER", "admin")
-BASIC_AUTH_PASS = os.environ.get("BASIC_AUTH_PASS", "password")
+BASIC_AUTH_USER = os.environ.get("BASIC_AUTH_USER")
+BASIC_AUTH_PASS = os.environ.get("BASIC_AUTH_PASS")
+
+if not BASIC_AUTH_USER or not BASIC_AUTH_PASS:
+    raise RuntimeError("環境変数 BASIC_AUTH_USER と BASIC_AUTH_PASS を設定してください")
 
 security = HTTPBasic()
 
