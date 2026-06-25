@@ -56,10 +56,11 @@
       "onAutoForward": "notify"
     }
   },
+  "initializeCommand": "bash -c 'test -e \"${HOME}/.ssh/ssh-agent.sock\" || touch \"${HOME}/.ssh/ssh-agent.sock\"'",
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "remoteUser": "node",
   "mounts": [
-    "source=${localEnv:SSH_AUTH_SOCK},target=/tmp/ssh-agent.sock,type=bind",
+    "source=${localEnv:HOME}/.ssh/ssh-agent.sock,target=/tmp/ssh-agent.sock,type=bind",
     "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind",
     "source=${localEnv:HOME}/.claude.json,target=/home/node/.claude.json,type=bind",
     "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind",

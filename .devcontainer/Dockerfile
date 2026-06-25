@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/devcontainers/javascript-node:24-bookworm
 
 # Python + pip
 RUN apt-get update && apt-get install -y \
-    python3 python3-venv python3-pip \
+    python3 python3-venv python3-pip python3-full \
     && ln -sf /usr/bin/python3 /usr/local/bin/python \
     && rm -rf /var/lib/apt/lists/*
 

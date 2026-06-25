@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ..:/workspaces/nina-njaa-page:cached
+      - ..:/workspaces/nina-njaa:cached
     command: sleep infinity
     networks:
       - app-net
