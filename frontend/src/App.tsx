@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { X, PlusCircle, Bookmark, Menu, LogOut } from 'lucide-react'
+import { X, PlusCircle, Bookmark, Menu, LogOut, Clock } from 'lucide-react'
 import SearchPage from './pages/SearchPage'
 import RecipePage from './pages/RecipePage'
 import BookmarksPage from './pages/BookmarksPage'
+import HistoryPage from './pages/HistoryPage'
 import LoginPage from './LoginPage'
 import ImportFromUrl from './components/ImportFromUrl'
 import { Button } from '@/components/ui/button'
@@ -113,11 +114,19 @@ export default function App() {
                 <Menu className="h-5 w-5" />
               </Button>
               {menuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-40 rounded-lg border bg-card shadow-lg z-10">
+                <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border bg-card shadow-lg z-10">
+                  <Link
+                    to="/history"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted rounded-t-lg"
+                  >
+                    <Clock className="h-4 w-4" />
+                    最近見たもの
+                  </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted rounded-lg"
+                    className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted rounded-b-lg"
                   >
                     <LogOut className="h-4 w-4" />
                     ログアウト
@@ -133,6 +142,7 @@ export default function App() {
               <Route path="/" element={<SearchPage />} />
               <Route path="/recipe/:id" element={<RecipePage />} />
               <Route path="/bookmarks" element={<BookmarksPage />} />
+              <Route path="/history" element={<HistoryPage />} />
             </Routes>
           </div>
         </main>

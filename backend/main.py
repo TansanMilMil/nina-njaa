@@ -212,11 +212,22 @@ def record_recipe_viewed(id: int, username: str = Depends(get_current_username))
         if is_main_ingredient(ing.name, ing.unit)
     ]
     repo.record_viewed_ingredients(username, main_ingredients)
+    repo.record_viewed_recipe(username, id)
 
 
 @app.get("/api/ingredients/suggestions", response_model=list[str])
 def get_ingredient_suggestions(username: str = Depends(get_current_username)):
     return repo.get_ingredient_suggestions(username)
+
+
+@app.get("/api/history/recipes", response_model=list[Recipe])
+def get_recipe_history(username: str = Depends(get_current_username)):
+    return repo.get_recent_viewed_recipes(username)
+
+
+@app.get("/api/history/ingredients", response_model=list[str])
+def get_ingredient_history(username: str = Depends(get_current_username)):
+    return repo.get_recent_viewed_ingredients(username)
 
 
 @app.put("/api/recipes/{id}", response_model=RecipeDetail)
