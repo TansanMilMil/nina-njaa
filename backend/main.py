@@ -14,17 +14,17 @@ from pydantic import BaseModel
 from models import Recipe, RecipeCreate, RecipeDetail, RecipeUpdate
 from repository.sqlite import SQLiteRecipeRepository
 
-BASIC_AUTH_USER = os.environ.get("BASIC_AUTH_USER")
-BASIC_AUTH_PASS = os.environ.get("BASIC_AUTH_PASS")
+BASIC_AUTH_USER = os.environ.get("NINA_NJAA_BASIC_AUTH_USER")
+BASIC_AUTH_PASS = os.environ.get("NINA_NJAA_BASIC_AUTH_PASS")
 
 if not BASIC_AUTH_USER or not BASIC_AUTH_PASS:
-    raise RuntimeError("環境変数 BASIC_AUTH_USER と BASIC_AUTH_PASS を設定してください")
+    raise RuntimeError("環境変数 NINA_NJAA_BASIC_AUTH_USER と NINA_NJAA_BASIC_AUTH_PASS を設定してください")
 
-JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
+JWT_SECRET_KEY = os.environ.get("NINA_NJAA_JWT_SECRET_KEY")
 if not JWT_SECRET_KEY:
-    raise RuntimeError("環境変数 JWT_SECRET_KEY を設定してください")
+    raise RuntimeError("環境変数 NINA_NJAA_JWT_SECRET_KEY を設定してください")
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_DAYS = int(os.environ.get("JWT_EXPIRE_DAYS", "7"))
+JWT_EXPIRE_DAYS = int(os.environ.get("NINA_NJAA_JWT_EXPIRE_DAYS", "7"))
 
 
 def create_access_token(username: str) -> str:
@@ -56,7 +56,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "..", "db", "recipes.db"))
+DB_PATH = os.environ.get("NINA_NJAA_DB_PATH", os.path.join(os.path.dirname(__file__), "..", "db", "recipes.db"))
 repo = SQLiteRecipeRepository(DB_PATH)
 
 
@@ -92,7 +92,7 @@ class RecipeFromUrlRequest(BaseModel):
     url: str
 
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_API_KEY = os.environ.get("NINA_NJAA_OPENAI_API_KEY")
 
 RECIPE_JSON_SCHEMA = {
     "type": "object",

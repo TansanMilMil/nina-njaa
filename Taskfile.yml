@@ -72,6 +72,11 @@ tasks:
     cmds:
       - docker compose ps
 
+  deploy:
+    desc: "venusにrsyncでデプロイし docker compose を再起動"
+    cmds:
+      - bash scripts/deploy.sh
+
   db:backup:
     desc: "recipes.db を日時付きでバックアップ (./backups/ に保存)"
     cmds:

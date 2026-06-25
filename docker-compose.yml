@@ -2,11 +2,11 @@ services:
   backend:
     build: ./backend
     environment:
-      - BASIC_AUTH_USER=${BASIC_AUTH_USER:-admin}
-      - BASIC_AUTH_PASS=${BASIC_AUTH_PASS:-password}
-      - DB_PATH=/app/db/recipes.db
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - NINA_NJAA_BASIC_AUTH_USER=${NINA_NJAA_BASIC_AUTH_USER:-admin}
+      - NINA_NJAA_BASIC_AUTH_PASS=${NINA_NJAA_BASIC_AUTH_PASS:-password}
+      - NINA_NJAA_DB_PATH=/app/db/recipes.db
+      - NINA_NJAA_OPENAI_API_KEY=${NINA_NJAA_OPENAI_API_KEY}
+      - NINA_NJAA_JWT_SECRET_KEY=${NINA_NJAA_JWT_SECRET_KEY}
     volumes:
       - ./db:/app/db
     networks:
