@@ -2,7 +2,7 @@
 set -e
 
 # Tools
-sudo apt-get update -qq && sudo apt-get install -y -qq rsync
+sudo apt-get update -qq && sudo apt-get install -y -qq rsync sqlite3
 
 # Claude Code CLI
 npm install -g @anthropic-ai/claude-code

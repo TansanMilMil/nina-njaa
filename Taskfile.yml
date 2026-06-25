@@ -22,7 +22,7 @@ tasks:
     desc: "FastAPI サーバーを起動 (port 8001)"
     dir: backend
     cmds:
-      - uvicorn main:app --reload --port 8001
+      - .venv/bin/uvicorn main:app --reload --port 8001
 
   install:
     desc: "フロントエンドの依存パッケージをインストール"
