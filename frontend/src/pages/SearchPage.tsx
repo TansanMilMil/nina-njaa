@@ -10,6 +10,7 @@ export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const q = searchParams.get('q') ?? ''
   const [results, setResults] = useState<Recipe[]>([])
+  const [loading, setLoading] = useState(false)
   const { bookmarks } = useBookmarks()
 
   const handleChange = (value: string) => {
@@ -26,8 +27,12 @@ export default function SearchPage() {
       return
     }
     let cancelled = false
+    setLoading(true)
     searchRecipes(q).then(data => {
-      if (!cancelled) setResults(data)
+      if (!cancelled) {
+        setResults(data)
+        setLoading(false)
+      }
     })
     return () => {
       cancelled = true
@@ -62,12 +67,18 @@ export default function SearchPage() {
           )}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1 }}>
-          {results.length === 0 ? (
-            <p>該当するレシピが見つかりませんでした</p>
-          ) : (
-            results.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} />)
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          {!loading && (
+            <p style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: '#666', flexShrink: 0 }}>
+              {results.length === 0 ? '該当するレシピが見つかりませんでした' : `${results.length}件のレシピが見つかりました`}
+            </p>
           )}
+          {loading && (
+            <p style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: '#666', flexShrink: 0 }}>検索中...</p>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1 }}>
+            {results.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} />)}
+          </div>
         </div>
       )}
     </div>
