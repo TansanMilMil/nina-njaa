@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from models import Recipe, RecipeCreate, RecipeDetail
+from models import Recipe, RecipeCreate, RecipeDetail, RecipeUpdate
 
 
 class RecipeRepositoryBase(ABC):
@@ -15,3 +15,6 @@ class RecipeRepositoryBase(ABC):
 
     @abstractmethod
     def create(self, data: RecipeCreate) -> RecipeDetail: ...
+
+    @abstractmethod
+    def update(self, id: int, data: RecipeUpdate) -> RecipeDetail | None: ...

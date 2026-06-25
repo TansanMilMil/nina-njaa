@@ -10,7 +10,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from openai import OpenAI
 from pydantic import BaseModel
 
-from models import Recipe, RecipeCreate, RecipeDetail
+from models import Recipe, RecipeCreate, RecipeDetail, RecipeUpdate
 from repository.sqlite import SQLiteRecipeRepository
 
 BASIC_AUTH_USER = os.environ.get("BASIC_AUTH_USER")
@@ -41,7 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "db", "recipes.db"))
+DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "..", "db", "recipes.db"))
 repo = SQLiteRecipeRepository(DB_PATH)
 
 
@@ -151,6 +151,14 @@ def create_recipe_from_url(body: RecipeFromUrlRequest):
 @app.get("/api/recipes/{id}", response_model=RecipeDetail)
 def get_recipe(id: int):
     recipe = repo.get_by_id(id)
+    if recipe is None:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    return recipe
+
+
+@app.put("/api/recipes/{id}", response_model=RecipeDetail)
+def update_recipe(id: int, body: RecipeUpdate):
+    recipe = repo.update(id, body)
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
     return recipe

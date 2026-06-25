@@ -2,14 +2,15 @@ import os
 import sqlite3
 from datetime import datetime, timezone
 
-from models import Ingredient, Recipe, RecipeCreate, RecipeDetail, Step
+from models import Ingredient, Recipe, RecipeCreate, RecipeDetail, RecipeUpdate, Step
 from repository.base import RecipeRepositoryBase
 
 
 class SQLiteRecipeRepository(RecipeRepositoryBase):
     def __init__(self, db_path: str):
+        if not os.path.exists(db_path):
+            raise FileNotFoundError(f"データベースファイルが見つかりません: {db_path}")
         self.db_path = db_path
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
     def _connect(self) -> sqlite3.Connection:
         con = sqlite3.connect(self.db_path)
@@ -88,3 +89,31 @@ class SQLiteRecipeRepository(RecipeRepositoryBase):
                 )
 
         return self.get_by_id(recipe_id)
+
+    def update(self, id: int, data: RecipeUpdate) -> RecipeDetail | None:
+        with self._connect() as con:
+            row = con.execute("SELECT id FROM recipes WHERE id = ?", (id,)).fetchone()
+            if row is None:
+                return None
+
+            con.execute(
+                "UPDATE recipes SET name = ?, source_url = ?, servings = ? WHERE id = ?",
+                (data.name, data.source_url, data.servings, id),
+            )
+
+            con.execute("DELETE FROM ingredients WHERE recipe_id = ?", (id,))
+            for i, ing in enumerate(data.ingredients):
+                sort_order = ing.sort_order if ing.sort_order is not None else i
+                con.execute(
+                    "INSERT INTO ingredients (recipe_id, group_name, sort_order, name, quantity, unit, note) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (id, ing.group_name, sort_order, ing.name, ing.quantity, ing.unit, ing.note),
+                )
+
+            con.execute("DELETE FROM steps WHERE recipe_id = ?", (id,))
+            for step in data.steps:
+                con.execute(
+                    "INSERT INTO steps (recipe_id, step_number, description) VALUES (?, ?, ?)",
+                    (id, step.step_number, step.description),
+                )
+
+        return self.get_by_id(id)

@@ -78,6 +78,34 @@ export async function getRecipe(id: number): Promise<RecipeDetail> {
   return res.json()
 }
 
+export interface RecipeUpdatePayload {
+  name: string
+  source_url: string
+  servings: number | null
+  ingredients: {
+    group_name: string | null
+    name: string
+    quantity: string | null
+    unit: string | null
+    note: string | null
+    sort_order?: number | null
+  }[]
+  steps: {
+    step_number: number
+    description: string
+  }[]
+}
+
+export async function updateRecipe(id: number, data: RecipeUpdatePayload): Promise<RecipeDetail> {
+  const res = await authFetch(`${BASE}/recipes/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('更新に失敗しました')
+  return res.json()
+}
+
 export class DuplicateUrlError extends Error {
   constructor() {
     super('このURLのレシピはすでに登録されています')
