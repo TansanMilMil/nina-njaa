@@ -9,6 +9,37 @@ from repository.base import RecipeRepositoryBase
 
 _SCHEMA_STATEMENTS = (
     """
+    CREATE TABLE IF NOT EXISTS recipes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        source_url TEXT UNIQUE NOT NULL,
+        servings INTEGER,
+        scraped_at TEXT NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS ingredients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        recipe_id INTEGER NOT NULL,
+        group_name TEXT,
+        sort_order INTEGER,
+        name TEXT NOT NULL,
+        quantity TEXT,
+        unit TEXT,
+        note TEXT
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_ingredients_recipe_id ON ingredients(recipe_id)",
+    """
+    CREATE TABLE IF NOT EXISTS steps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        recipe_id INTEGER NOT NULL,
+        step_number INTEGER NOT NULL,
+        description TEXT NOT NULL
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_steps_recipe_id ON steps(recipe_id)",
+    """
     CREATE TABLE IF NOT EXISTS viewed_ingredients (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL,
@@ -17,6 +48,7 @@ _SCHEMA_STATEMENTS = (
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_vi_username ON viewed_ingredients(username)",
+    "CREATE INDEX IF NOT EXISTS idx_vi_username_ingredient ON viewed_ingredients(username, ingredient_name)",
     """
     CREATE TABLE IF NOT EXISTS viewed_recipes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,6 +58,7 @@ _SCHEMA_STATEMENTS = (
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_vr_username ON viewed_recipes(username)",
+    "CREATE INDEX IF NOT EXISTS idx_vr_username_recipe_id ON viewed_recipes(username, recipe_id)",
     """
     CREATE TABLE IF NOT EXISTS recipe_bookmarks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,6 +69,7 @@ _SCHEMA_STATEMENTS = (
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_rb_username ON recipe_bookmarks(username)",
+    "CREATE INDEX IF NOT EXISTS idx_rb_recipe_id ON recipe_bookmarks(recipe_id)",
     """
     CREATE TABLE IF NOT EXISTS ingredient_bookmarks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
