@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 type Tab = 'recipes' | 'ingredients'
 
 export default function BookmarksPage() {
-  const { bookmarks } = useBookmarks()
+  const { bookmarks, toggle } = useBookmarks()
   const { ingredientBookmarks, toggleIngredient } = useIngredientBookmarks()
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loadingRecipes, setLoadingRecipes] = useState(false)
@@ -58,7 +58,7 @@ export default function BookmarksPage() {
           <div className="flex flex-col gap-3">
             {loadingRecipes
               ? Array.from({ length: bookmarks.length }, (_, i) => <RecipeCardSkeleton key={i} />)
-              : recipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked />)
+              : recipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked onBookmarkToggle={() => toggle(r.id)} />)
             }
           </div>
         )

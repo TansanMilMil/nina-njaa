@@ -9,4 +9,4 @@ rsync -avz --delete --exclude='node_modules' \
   venus:/home/alma/nina-njaa/
 
 ssh venus "mkdir -p /home/alma/nina-njaa/db"
-ssh venus "cd /home/alma/nina-njaa && docker compose up -d --build"
+ssh venus "cd /home/alma/nina-njaa && docker compose down && docker compose up -d --build"
