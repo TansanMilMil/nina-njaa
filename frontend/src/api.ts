@@ -106,6 +106,16 @@ export async function updateRecipe(id: number, data: RecipeUpdatePayload): Promi
   return res.json()
 }
 
+export async function recordRecipeViewed(id: number): Promise<void> {
+  await authFetch(`${BASE}/recipes/${id}/viewed`, { method: 'POST' })
+}
+
+export async function getIngredientSuggestions(): Promise<string[]> {
+  const res = await authFetch(`${BASE}/ingredients/suggestions`)
+  if (!res.ok) return []
+  return res.json()
+}
+
 export class DuplicateUrlError extends Error {
   constructor() {
     super('このURLのレシピはすでに登録されています')

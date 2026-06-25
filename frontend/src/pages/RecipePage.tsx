@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { getRecipe, updateRecipe } from '../api'
+import { getRecipe, updateRecipe, recordRecipeViewed } from '../api'
 import type { RecipeDetail, Ingredient } from '../api'
 import BookmarkButton from '../components/BookmarkButton'
 import { useBookmarks } from '../hooks/useBookmarks'
@@ -72,7 +72,10 @@ export default function RecipePage() {
     setIsEditing(false)
     getRecipe(Number(id))
       .then(data => {
-        if (!cancelled) setRecipe(data)
+        if (!cancelled) {
+          setRecipe(data)
+          recordRecipeViewed(Number(id)).catch(() => {})
+        }
       })
       .catch(() => {
         if (!cancelled) setError(true)

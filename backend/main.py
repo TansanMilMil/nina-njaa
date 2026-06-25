@@ -33,6 +33,10 @@ def verify(credentials: HTTPBasicCredentials = Depends(security)) -> None:
         )
 
 
+def get_username(credentials: HTTPBasicCredentials = Depends(security)) -> str:
+    return credentials.username
+
+
 app = FastAPI(dependencies=[Depends(verify)])
 app.add_middleware(
     CORSMiddleware,
@@ -154,6 +158,19 @@ def get_recipe(id: int):
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
     return recipe
+
+
+@app.post("/api/recipes/{id}/viewed", status_code=204)
+def record_recipe_viewed(id: int, username: str = Depends(get_username)):
+    recipe = repo.get_by_id(id)
+    if recipe is None:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    repo.record_viewed_ingredients(username, [ing.name for ing in recipe.ingredients])
+
+
+@app.get("/api/ingredients/suggestions", response_model=list[str])
+def get_ingredient_suggestions(username: str = Depends(get_username)):
+    return repo.get_ingredient_suggestions(username)
 
 
 @app.put("/api/recipes/{id}", response_model=RecipeDetail)

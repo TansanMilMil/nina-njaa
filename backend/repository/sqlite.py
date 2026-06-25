@@ -11,6 +11,23 @@ class SQLiteRecipeRepository(RecipeRepositoryBase):
         if not os.path.exists(db_path):
             raise FileNotFoundError(f"データベースファイルが見つかりません: {db_path}")
         self.db_path = db_path
+        self._ensure_schema()
+
+    def _ensure_schema(self) -> None:
+        with self._connect() as con:
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS viewed_ingredients (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL,
+                    ingredient_name TEXT NOT NULL,
+                    viewed_at TEXT NOT NULL
+                )
+                """
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_vi_username ON viewed_ingredients(username)"
+            )
 
     def _connect(self) -> sqlite3.Connection:
         con = sqlite3.connect(self.db_path)
@@ -89,6 +106,43 @@ class SQLiteRecipeRepository(RecipeRepositoryBase):
                 )
 
         return self.get_by_id(recipe_id)
+
+    def record_viewed_ingredients(self, username: str, ingredient_names: list[str]) -> None:
+        if not ingredient_names:
+            return
+        viewed_at = datetime.now(timezone.utc).isoformat()
+        with self._connect() as con:
+            con.executemany(
+                "INSERT INTO viewed_ingredients (username, ingredient_name, viewed_at) VALUES (?, ?, ?)",
+                [(username, name, viewed_at) for name in ingredient_names],
+            )
+            con.execute(
+                """
+                DELETE FROM viewed_ingredients
+                WHERE username = ? AND id NOT IN (
+                    SELECT id FROM viewed_ingredients
+                    WHERE username = ?
+                    ORDER BY id DESC
+                    LIMIT 1000
+                )
+                """,
+                (username, username),
+            )
+
+    def get_ingredient_suggestions(self, username: str) -> list[str]:
+        with self._connect() as con:
+            rows = con.execute(
+                """
+                SELECT ingredient_name
+                FROM viewed_ingredients
+                WHERE username = ?
+                GROUP BY ingredient_name
+                ORDER BY COUNT(*) DESC, MAX(id) DESC
+                LIMIT 10
+                """,
+                (username,),
+            ).fetchall()
+        return [row["ingredient_name"] for row in rows]
 
     def update(self, id: int, data: RecipeUpdate) -> RecipeDetail | None:
         with self._connect() as con:

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import SearchBar from '../components/SearchBar'
 import RecipeCard from '../components/RecipeCard'
-import { searchRecipes } from '../api'
+import { searchRecipes, getIngredientSuggestions } from '../api'
 import type { Recipe } from '../api'
 import { useBookmarks } from '../hooks/useBookmarks'
 
@@ -11,7 +11,12 @@ export default function SearchPage() {
   const q = searchParams.get('q') ?? ''
   const [results, setResults] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState<string[]>([])
   const { bookmarks } = useBookmarks()
+
+  useEffect(() => {
+    getIngredientSuggestions().then(setSuggestions).catch(() => {})
+  }, [])
 
   const handleChange = (value: string) => {
     if (value) {
@@ -43,7 +48,31 @@ export default function SearchPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%', overflow: 'hidden' }}>
-      <SearchBar value={q} onChange={handleChange} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
+        <SearchBar value={q} onChange={handleChange} />
+        {suggestions.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+            {suggestions.map(s => (
+              <button
+                key={s}
+                onClick={() => handleChange(s)}
+                style={{
+                  padding: '0.25rem 0.65rem',
+                  fontSize: '0.8rem',
+                  borderRadius: '999px',
+                  border: '1px solid #ccc',
+                  background: q === s ? '#333' : '#f5f5f5',
+                  color: q === s ? '#fff' : '#333',
+                  cursor: 'pointer',
+                  lineHeight: 1.4,
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       {showBookmarks ? (
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.1rem', flexShrink: 0 }}>ブックマーク済みレシピ</h2>

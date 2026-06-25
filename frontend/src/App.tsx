@@ -85,7 +85,7 @@ export default function App() {
             </Link>
           </div>
         </header>
-        <main style={{ flex: 1, overflow: 'hidden', maxWidth: '720px', width: '100%', margin: '0 auto', padding: '1.5rem', boxSizing: 'border-box' }}>
+        <main style={{ flex: 1, overflowY: 'auto', maxWidth: '720px', width: '100%', margin: '0 auto', padding: '1.5rem', boxSizing: 'border-box' }}>
           <Routes>
             <Route path="/" element={<SearchPage />} />
             <Route path="/recipe/:id" element={<RecipePage />} />
