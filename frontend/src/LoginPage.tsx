@@ -22,7 +22,8 @@ export default function LoginPage({ onLogin, error, loading }: LoginPageProps) {
   return (
     <main className="mx-auto mt-16 w-full max-w-xs px-4">
       <Card>
-        <CardHeader>
+        <CardHeader className="items-center">
+          <img src="/nina-njaa-icon.png" alt="Ninanjaa" className="mb-1 h-16 w-16" />
           <CardTitle className="text-center text-2xl text-primary">Ninanjaa</CardTitle>
         </CardHeader>
         <CardContent>
