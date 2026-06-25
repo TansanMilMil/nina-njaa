@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { getRecipe, updateRecipe, recordRecipeViewed } from '../api'
 import type { RecipeDetail, Ingredient } from '../api'
 import BookmarkButton from '../components/BookmarkButton'
+import { RecipePageSkeleton } from '../components/Skeleton'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
 
@@ -181,7 +182,7 @@ export default function RecipePage() {
   }
 
   if (error) return <p>レシピが見つかりませんでした</p>
-  if (!recipe) return <p>読み込み中...</p>
+  if (!recipe) return <RecipePageSkeleton />
 
   if (isEditing && editState) {
     return (

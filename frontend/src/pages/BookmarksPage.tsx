@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import RecipeCard from '../components/RecipeCard'
+import { RecipeCardSkeleton } from '../components/Skeleton'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
 import { getRecipesByIds } from '../api'
@@ -12,6 +13,7 @@ export default function BookmarksPage() {
   const { bookmarks } = useBookmarks()
   const { ingredientBookmarks, toggleIngredient } = useIngredientBookmarks()
   const [recipes, setRecipes] = useState<Recipe[]>([])
+  const [loadingRecipes, setLoadingRecipes] = useState(false)
   const [tab, setTab] = useState<Tab>('recipes')
 
   useEffect(() => {
@@ -19,7 +21,11 @@ export default function BookmarksPage() {
       setRecipes([])
       return
     }
-    getRecipesByIds(bookmarks).then(setRecipes)
+    setLoadingRecipes(true)
+    getRecipesByIds(bookmarks).then(data => {
+      setRecipes(data)
+      setLoadingRecipes(false)
+    })
   }, [bookmarks])
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
@@ -52,9 +58,10 @@ export default function BookmarksPage() {
           <p style={{ margin: 0, color: '#888', fontSize: '0.9rem' }}>レシピのブックマークはまだありません</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {recipes.map(r => (
-              <RecipeCard key={r.id} recipe={r} isBookmarked />
-            ))}
+            {loadingRecipes
+              ? Array.from({ length: bookmarks.length }, (_, i) => <RecipeCardSkeleton key={i} />)
+              : recipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked />)
+            }
           </div>
         )
       )}

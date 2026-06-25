@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import SearchBar from '../components/SearchBar'
 import RecipeCard from '../components/RecipeCard'
+import { RecipeCardSkeleton } from '../components/Skeleton'
 import { searchRecipes, getIngredientSuggestions, getRecipesByIds } from '../api'
 import type { Recipe } from '../api'
 import { useBookmarks } from '../hooks/useBookmarks'
@@ -16,6 +17,7 @@ export default function SearchPage() {
   const { bookmarks, isBookmarked } = useBookmarks()
   const { ingredientBookmarks } = useIngredientBookmarks()
   const [bookmarkRecipes, setBookmarkRecipes] = useState<Recipe[]>([])
+  const [loadingBookmarks, setLoadingBookmarks] = useState(false)
 
   useEffect(() => {
     getIngredientSuggestions().then(setSuggestions).catch(() => {})
@@ -26,7 +28,11 @@ export default function SearchPage() {
       setBookmarkRecipes([])
       return
     }
-    getRecipesByIds(bookmarks).then(setBookmarkRecipes)
+    setLoadingBookmarks(true)
+    getRecipesByIds(bookmarks).then(data => {
+      setBookmarkRecipes(data)
+      setLoadingBookmarks(false)
+    })
   }, [bookmarks])
 
   const handleChange = (value: string) => {
@@ -117,9 +123,10 @@ export default function SearchPage() {
               <p>レシピのブックマークはまだありません</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1 }}>
-                {bookmarkRecipes.map(r => (
-                  <RecipeCard key={r.id} recipe={r} isBookmarked />
-                ))}
+                {loadingBookmarks
+                  ? Array.from({ length: bookmarks.length }, (_, i) => <RecipeCardSkeleton key={i} />)
+                  : bookmarkRecipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked />)
+                }
               </div>
             )}
           </div>
@@ -131,11 +138,11 @@ export default function SearchPage() {
               {results.length === 0 ? '該当するレシピが見つかりませんでした' : `${results.length}件のレシピが見つかりました`}
             </p>
           )}
-          {loading && (
-            <p style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: '#666', flexShrink: 0 }}>検索中...</p>
-          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1 }}>
-            {results.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} isBookmarked={isBookmarked(recipe.id)} />)}
+            {loading
+              ? Array.from({ length: 4 }, (_, i) => <RecipeCardSkeleton key={i} />)
+              : results.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} isBookmarked={isBookmarked(recipe.id)} />)
+            }
           </div>
         </div>
       )}
