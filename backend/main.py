@@ -218,3 +218,39 @@ def update_recipe(id: int, body: RecipeUpdate, _: str = Depends(get_current_user
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
     return recipe
+
+
+@app.get("/api/bookmarks/recipes", response_model=list[int])
+def get_recipe_bookmarks(username: str = Depends(get_current_username)):
+    return repo.get_recipe_bookmarks(username)
+
+
+@app.post("/api/bookmarks/recipes/{recipe_id}", status_code=204)
+def add_recipe_bookmark(recipe_id: int, username: str = Depends(get_current_username)):
+    if repo.get_by_id(recipe_id) is None:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    repo.add_recipe_bookmark(username, recipe_id)
+
+
+@app.delete("/api/bookmarks/recipes/{recipe_id}", status_code=204)
+def remove_recipe_bookmark(recipe_id: int, username: str = Depends(get_current_username)):
+    repo.remove_recipe_bookmark(username, recipe_id)
+
+
+class IngredientBookmarkRequest(BaseModel):
+    name: str
+
+
+@app.get("/api/bookmarks/ingredients", response_model=list[str])
+def get_ingredient_bookmarks(username: str = Depends(get_current_username)):
+    return repo.get_ingredient_bookmarks(username)
+
+
+@app.post("/api/bookmarks/ingredients", status_code=204)
+def add_ingredient_bookmark(body: IngredientBookmarkRequest, username: str = Depends(get_current_username)):
+    repo.add_ingredient_bookmark(username, body.name)
+
+
+@app.delete("/api/bookmarks/ingredients", status_code=204)
+def remove_ingredient_bookmark(body: IngredientBookmarkRequest, username: str = Depends(get_current_username)):
+    repo.remove_ingredient_bookmark(username, body.name)

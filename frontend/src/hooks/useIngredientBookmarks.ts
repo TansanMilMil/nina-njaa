@@ -1,30 +1,27 @@
 import { useState, useEffect } from 'react'
-
-const KEY = 'ninanjaa_ingredient_bookmarks'
-
-function load(): string[] {
-  try {
-    const stored = JSON.parse(localStorage.getItem(KEY) || '[]')
-    if (!Array.isArray(stored)) return []
-    return stored.filter((s: unknown) => typeof s === 'string')
-  } catch {
-    return []
-  }
-}
+import { getIngredientBookmarks, addIngredientBookmark, removeIngredientBookmark } from '../api'
 
 export function useIngredientBookmarks() {
-  const [bookmarks, setBookmarks] = useState<string[]>(load)
+  const [bookmarks, setBookmarks] = useState<string[]>([])
 
   useEffect(() => {
-    localStorage.setItem(KEY, JSON.stringify(bookmarks))
-  }, [bookmarks])
+    getIngredientBookmarks().then(setBookmarks).catch(() => {})
+  }, [])
 
   const isIngredientBookmarked = (name: string) => bookmarks.includes(name)
 
-  const toggleIngredient = (name: string) => {
-    setBookmarks(prev =>
-      prev.includes(name) ? prev.filter(b => b !== name) : [...prev, name]
-    )
+  const toggleIngredient = async (name: string) => {
+    const wasBookmarked = bookmarks.includes(name)
+    setBookmarks(prev => wasBookmarked ? prev.filter(b => b !== name) : [...prev, name])
+    try {
+      if (wasBookmarked) {
+        await removeIngredientBookmark(name)
+      } else {
+        await addIngredientBookmark(name)
+      }
+    } catch {
+      setBookmarks(prev => wasBookmarked ? [...prev, name] : prev.filter(b => b !== name))
+    }
   }
 
   return { ingredientBookmarks: bookmarks, isIngredientBookmarked, toggleIngredient }

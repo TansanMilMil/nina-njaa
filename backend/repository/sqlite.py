@@ -29,6 +29,34 @@ class SQLiteRecipeRepository(RecipeRepositoryBase):
             con.execute(
                 "CREATE INDEX IF NOT EXISTS idx_vi_username ON viewed_ingredients(username)"
             )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS recipe_bookmarks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL,
+                    recipe_id INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(username, recipe_id)
+                )
+                """
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_rb_username ON recipe_bookmarks(username)"
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS ingredient_bookmarks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL,
+                    ingredient_name TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(username, ingredient_name)
+                )
+                """
+            )
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_ib_username ON ingredient_bookmarks(username)"
+            )
 
     def _connect(self) -> sqlite3.Connection:
         con = sqlite3.connect(self.db_path)
@@ -193,3 +221,49 @@ class SQLiteRecipeRepository(RecipeRepositoryBase):
                 )
 
         return self.get_by_id(id)
+
+    def get_recipe_bookmarks(self, username: str) -> list[int]:
+        with self._connect() as con:
+            rows = con.execute(
+                "SELECT recipe_id FROM recipe_bookmarks WHERE username = ? ORDER BY created_at DESC",
+                (username,),
+            ).fetchall()
+        return [row["recipe_id"] for row in rows]
+
+    def add_recipe_bookmark(self, username: str, recipe_id: int) -> None:
+        created_at = datetime.now(timezone.utc).isoformat()
+        with self._connect() as con:
+            con.execute(
+                "INSERT OR IGNORE INTO recipe_bookmarks (username, recipe_id, created_at) VALUES (?, ?, ?)",
+                (username, recipe_id, created_at),
+            )
+
+    def remove_recipe_bookmark(self, username: str, recipe_id: int) -> None:
+        with self._connect() as con:
+            con.execute(
+                "DELETE FROM recipe_bookmarks WHERE username = ? AND recipe_id = ?",
+                (username, recipe_id),
+            )
+
+    def get_ingredient_bookmarks(self, username: str) -> list[str]:
+        with self._connect() as con:
+            rows = con.execute(
+                "SELECT ingredient_name FROM ingredient_bookmarks WHERE username = ? ORDER BY created_at DESC",
+                (username,),
+            ).fetchall()
+        return [row["ingredient_name"] for row in rows]
+
+    def add_ingredient_bookmark(self, username: str, ingredient_name: str) -> None:
+        created_at = datetime.now(timezone.utc).isoformat()
+        with self._connect() as con:
+            con.execute(
+                "INSERT OR IGNORE INTO ingredient_bookmarks (username, ingredient_name, created_at) VALUES (?, ?, ?)",
+                (username, ingredient_name, created_at),
+            )
+
+    def remove_ingredient_bookmark(self, username: str, ingredient_name: str) -> None:
+        with self._connect() as con:
+            con.execute(
+                "DELETE FROM ingredient_bookmarks WHERE username = ? AND ingredient_name = ?",
+                (username, ingredient_name),
+            )

@@ -143,3 +143,39 @@ export async function importRecipeFromUrl(url: string): Promise<RecipeDetail> {
   }
   return res.json()
 }
+
+export async function getRecipeBookmarks(): Promise<number[]> {
+  const res = await authFetch(`${BASE}/bookmarks/recipes`)
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function addRecipeBookmark(id: number): Promise<void> {
+  await authFetch(`${BASE}/bookmarks/recipes/${id}`, { method: 'POST' })
+}
+
+export async function removeRecipeBookmark(id: number): Promise<void> {
+  await authFetch(`${BASE}/bookmarks/recipes/${id}`, { method: 'DELETE' })
+}
+
+export async function getIngredientBookmarks(): Promise<string[]> {
+  const res = await authFetch(`${BASE}/bookmarks/ingredients`)
+  if (!res.ok) return []
+  return res.json()
+}
+
+export async function addIngredientBookmark(name: string): Promise<void> {
+  await authFetch(`${BASE}/bookmarks/ingredients`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+}
+
+export async function removeIngredientBookmark(name: string): Promise<void> {
+  await authFetch(`${BASE}/bookmarks/ingredients`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+}
