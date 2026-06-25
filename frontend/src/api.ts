@@ -40,7 +40,7 @@ export class UnauthorizedError extends Error {
 }
 
 export async function authFetch(input: string, init: RequestInit = {}): Promise<Response> {
-  const res = await fetch(input, init)
+  const res = await fetch(input, { credentials: 'include', ...init })
   if (res.status === 401) {
     window.dispatchEvent(new Event('unauthorized'))
     throw new UnauthorizedError()
@@ -51,6 +51,7 @@ export async function authFetch(input: string, init: RequestInit = {}): Promise<
 export async function login(username: string, password: string): Promise<void> {
   const res = await fetch(`${BASE}/auth/login`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   })
@@ -59,14 +60,19 @@ export async function login(username: string, password: string): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
-  await fetch(`${BASE}/auth/logout`, { method: 'POST' })
+  await authFetch(`${BASE}/auth/logout`, { method: 'POST' })
 }
 
 export async function checkAuth(): Promise<string | null> {
-  const res = await fetch(`${BASE}/auth/me`)
-  if (!res.ok) return null
-  const data = await res.json()
-  return data.username as string
+  try {
+    const res = await authFetch(`${BASE}/auth/me`)
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.username as string
+  } catch (e) {
+    if (e instanceof UnauthorizedError) return null
+    throw e
+  }
 }
 
 export async function searchRecipes(q: string): Promise<Recipe[]> {

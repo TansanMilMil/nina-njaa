@@ -49,9 +49,10 @@ class LoginRequest(BaseModel):
 
 
 app = FastAPI()
+# 同一オリジン構成のため CORS は実質不要だが、念のため本番オリジンのみ許可
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://os3-386-26416.vs.sakura.ne.jp:8090"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -79,7 +80,7 @@ def login(body: LoginRequest, response: Response):
 
 @app.post("/api/auth/logout")
 def logout(response: Response):
-    response.delete_cookie("auth_token", samesite="strict")
+    response.delete_cookie("auth_token", httponly=True, samesite="strict")
     return {"ok": True}
 
 
