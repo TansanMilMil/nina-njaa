@@ -5,6 +5,7 @@ import RecipeCard from '../components/RecipeCard'
 import { searchRecipes, getIngredientSuggestions, getRecipesByIds } from '../api'
 import type { Recipe } from '../api'
 import { useBookmarks } from '../hooks/useBookmarks'
+import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -13,6 +14,7 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const { bookmarks, isBookmarked } = useBookmarks()
+  const { ingredientBookmarks } = useIngredientBookmarks()
   const [bookmarkRecipes, setBookmarkRecipes] = useState<Recipe[]>([])
 
   useEffect(() => {
@@ -83,17 +85,44 @@ export default function SearchPage() {
         )}
       </div>
       {showBookmarks ? (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-          <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.1rem', flexShrink: 0 }}>ブックマーク済みレシピ</h2>
-          {bookmarks.length === 0 ? (
-            <p>ブックマークはまだありません</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1 }}>
-              {bookmarkRecipes.map(r => (
-                <RecipeCard key={r.id} recipe={r} />
-              ))}
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', gap: '1rem' }}>
+          {ingredientBookmarks.length > 0 && (
+            <div style={{ flexShrink: 0 }}>
+              <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem' }}>ブックマーク済み食材</h2>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                {ingredientBookmarks.map(name => (
+                  <button
+                    key={name}
+                    onClick={() => handleChange(name)}
+                    style={{
+                      padding: '0.25rem 0.65rem',
+                      fontSize: '0.8rem',
+                      borderRadius: '999px',
+                      border: '1px solid #f0a500',
+                      background: '#fffbf0',
+                      color: '#333',
+                      cursor: 'pointer',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    ★ {name}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+            <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.1rem', flexShrink: 0 }}>ブックマーク済みレシピ</h2>
+            {bookmarks.length === 0 ? (
+              <p>レシピのブックマークはまだありません</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1 }}>
+                {bookmarkRecipes.map(r => (
+                  <RecipeCard key={r.id} recipe={r} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>

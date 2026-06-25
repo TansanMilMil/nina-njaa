@@ -4,6 +4,7 @@ import { getRecipe, updateRecipe, recordRecipeViewed } from '../api'
 import type { RecipeDetail, Ingredient } from '../api'
 import BookmarkButton from '../components/BookmarkButton'
 import { useBookmarks } from '../hooks/useBookmarks'
+import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
 
 function groupIngredients(ingredients: Ingredient[]): [string | null, Ingredient[]][] {
   const groups: [string | null, Ingredient[]][] = []
@@ -63,6 +64,7 @@ export default function RecipePage() {
   const [editState, setEditState] = useState<EditState | null>(null)
   const [saving, setSaving] = useState(false)
   const { isBookmarked, toggle } = useBookmarks()
+  const { isIngredientBookmarked, toggleIngredient } = useIngredientBookmarks()
 
   useEffect(() => {
     if (!id) return
@@ -299,18 +301,37 @@ export default function RecipePage() {
             {groupName && <h3 style={{ fontSize: '1rem', margin: '0.5rem 0' }}>{groupName}</h3>}
             <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
               {items.map(ing => (
-                <li key={ing.id}>
-                  <Link to={`/?q=${encodeURIComponent(ing.name)}`} style={{ color: 'inherit', textDecoration: 'underline', textDecorationColor: '#ccc', textUnderlineOffset: '2px' }}>
-                    {ing.name}
-                  </Link>
-                  {(ing.quantity || ing.unit) && (
-                    <>
-                      {' '}
-                      {ing.quantity ?? ''}
-                      {ing.unit ?? ''}
-                    </>
-                  )}
-                  {ing.note && <span style={{ color: '#888' }}>（{ing.note}）</span>}
+                <li key={ing.id} style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleIngredient(ing.name)}
+                    title={isIngredientBookmarked(ing.name) ? 'ブックマーク解除' : 'ブックマークする'}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      color: isIngredientBookmarked(ing.name) ? '#f0a500' : '#ccc',
+                      lineHeight: 1,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {isIngredientBookmarked(ing.name) ? '★' : '☆'}
+                  </button>
+                  <span>
+                    <Link to={`/?q=${encodeURIComponent(ing.name)}`} style={{ color: 'inherit', textDecoration: 'underline', textDecorationColor: '#ccc', textUnderlineOffset: '2px' }}>
+                      {ing.name}
+                    </Link>
+                    {(ing.quantity || ing.unit) && (
+                      <>
+                        {' '}
+                        {ing.quantity ?? ''}
+                        {ing.unit ?? ''}
+                      </>
+                    )}
+                    {ing.note && <span style={{ color: '#888' }}>（{ing.note}）</span>}
+                  </span>
                 </li>
               ))}
             </ul>
