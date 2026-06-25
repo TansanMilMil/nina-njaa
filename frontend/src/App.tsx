@@ -26,8 +26,10 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <header
         style={{
+          flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -51,13 +53,14 @@ export default function App() {
           ブックマーク
         </Link>
       </header>
-      <main style={{ maxWidth: '720px', margin: '0 auto', padding: '1.5rem' }}>
+      <main style={{ flex: 1, overflow: 'hidden', maxWidth: '720px', width: '100%', margin: '0 auto', padding: '1.5rem', boxSizing: 'border-box' }}>
         <Routes>
           <Route path="/" element={<SearchPage />} />
           <Route path="/recipe/:id" element={<RecipePage />} />
           <Route path="/bookmarks" element={<BookmarksPage />} />
         </Routes>
       </main>
+      </div>
     </BrowserRouter>
   )
 }

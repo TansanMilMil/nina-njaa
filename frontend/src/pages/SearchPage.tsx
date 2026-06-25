@@ -38,16 +38,16 @@ export default function SearchPage() {
   const showBookmarks = q === ''
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%', overflow: 'hidden' }}>
       <ImportFromUrl />
       <SearchBar value={q} onChange={handleChange} />
       {showBookmarks ? (
-        <>
-          <h2 style={{ margin: 0, fontSize: '1.1rem' }}>ブックマーク済みレシピ</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.1rem', flexShrink: 0 }}>ブックマーク済みレシピ</h2>
           {bookmarks.length === 0 ? (
             <p>ブックマークはまだありません</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1 }}>
               {bookmarks.map(b => (
                 <RecipeCard
                   key={b.id}
@@ -62,9 +62,9 @@ export default function SearchPage() {
               ))}
             </div>
           )}
-        </>
+        </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1 }}>
           {results.length === 0 ? (
             <p>該当するレシピが見つかりませんでした</p>
           ) : (
