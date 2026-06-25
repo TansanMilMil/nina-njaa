@@ -55,8 +55,33 @@ RECIPE_JSON_SCHEMA = {
 
 SYSTEM_PROMPT = (
     "あなたはレシピ抽出AIです。与えられたウェブページのテキストからレシピ情報を抽出し、"
-    "指定されたJSONスキーマに従って出力してください。"
-    "テキストにレシピが含まれていない場合は name を「不明なレシピ」として空の ingredients と steps を返してください。"
+    "以下のJSONスキーマに厳密に従って出力してください。\n\n"
+    "出力スキーマ:\n"
+    "{\n"
+    '  "name": "レシピ名（文字列）",\n'
+    '  "servings": 人数（整数またはnull）,\n'
+    '  "ingredients": [\n'
+    "    {\n"
+    '      "name": "材料名（必須）",\n'
+    '      "quantity": "分量（例: 大さじ2、100、適量）またはnull",\n'
+    '      "unit": "単位（例: g、ml、個）またはnull",\n'
+    '      "group_name": "材料グループ名（例: 合わせだれ、下味）またはnull",\n'
+    '      "note": "備考（例: みじん切り）またはnull"\n'
+    "    }\n"
+    "  ],\n"
+    '  "steps": [\n'
+    "    {\n"
+    '      "step_number": 手順番号（整数）,\n'
+    '      "description": "手順の説明（文字列）"\n'
+    "    }\n"
+    "  ]\n"
+    "}\n\n"
+    "重要なルール:\n"
+    "- 各材料の quantity（分量）と group_name（グループ名）は必ず抽出してください。\n"
+    "- レシピにグループ（「合わせだれ」「下味」「A」など）がある場合は group_name に設定してください。\n"
+    "- 分量が記載されている場合は必ず quantity に設定してください（省略しないこと）。\n"
+    "- quantity と unit は分けて設定してください（例: '大さじ' は quantity='大さじ2' unit=null、'100g' は quantity='100' unit='g'）。\n"
+    "- テキストにレシピが含まれていない場合は name を「不明なレシピ」として空の ingredients と steps を返してください。"
 )
 
 
