@@ -127,12 +127,14 @@ export default function App() {
             </div>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-3xl flex-1 overflow-y-auto p-6">
-          <Routes>
-            <Route path="/" element={<SearchPage />} />
-            <Route path="/recipe/:id" element={<RecipePage />} />
-            <Route path="/bookmarks" element={<BookmarksPage />} />
-          </Routes>
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-3xl p-6">
+            <Routes>
+              <Route path="/" element={<SearchPage />} />
+              <Route path="/recipe/:id" element={<RecipePage />} />
+              <Route path="/bookmarks" element={<BookmarksPage />} />
+            </Routes>
+          </div>
         </main>
       </div>
 
