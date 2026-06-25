@@ -10,6 +10,7 @@ import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 function groupIngredients(ingredients: Ingredient[]): [string | null, Ingredient[]][] {
   const groups: [string | null, Ingredient[]][] = []
@@ -107,10 +108,12 @@ export default function RecipePage() {
     if (!id || !window.confirm(`「${recipe?.name}」を削除しますか？`)) return
     setDeleting(true)
     try {
+      const name = recipe?.name
       await deleteRecipe(Number(id))
+      toast.success(`「${name}」を削除しました`)
       navigate('/')
     } catch {
-      alert('削除に失敗しました')
+      toast.error('削除に失敗しました')
       setDeleting(false)
     }
   }

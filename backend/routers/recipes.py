@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from db import repo
 from ingredient_filter import is_main_ingredient
-from models import Recipe, RecipeCreate, RecipeDetail, RecipeUpdate
+from models import IngredientCreate, Recipe, RecipeCreate, RecipeDetail, RecipeUpdate, StepCreate
 from routers.auth import get_current_username
 
 
@@ -83,37 +83,56 @@ def create_recipe_from_url(body: RecipeFromUrlRequest, _: str = Depends(get_curr
     for tag in soup(["script", "style", "nav", "footer", "header"]):
         tag.decompose()
     page_text = soup.get_text(separator="\n", strip=True)[:8000]
+    if not page_text:
+        raise HTTPException(status_code=422, detail="ページからテキストを抽出できませんでした")
 
     if not OPENAI_API_KEY:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY が設定されていません")
 
     client = OpenAI(api_key=OPENAI_API_KEY)
-    completion = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"次のページからレシピを抽出してください:\n\n{page_text}"},
-        ],
-        response_format={"type": "json_object"},
-    )
-
     try:
-        parsed = json.loads(completion.choices[0].message.content)
-    except (json.JSONDecodeError, IndexError) as e:
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": f"次のページからレシピを抽出してください:\n\n{page_text}"},
+            ],
+            response_format={"type": "json_object"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"OpenAI APIの呼び出しに失敗しました: {e}")
+
+    content = completion.choices[0].message.content
+    if content is None:
+        raise HTTPException(status_code=500, detail="OpenAIのレスポンスが空でした")
+    try:
+        parsed = json.loads(content)
+    except json.JSONDecodeError as e:
         raise HTTPException(status_code=500, detail=f"OpenAIのレスポンス解析に失敗しました: {e}")
+
+    raw_steps = parsed.get("steps", [])
+    steps = [
+        StepCreate(step_number=s.get("step_number", i + 1), description=s.get("description", ""))
+        if isinstance(s, dict)
+        else StepCreate(step_number=i + 1, description=str(s))
+        for i, s in enumerate(raw_steps)
+    ]
 
     recipe_data = RecipeCreate(
         name=parsed.get("name", "不明なレシピ"),
         source_url=body.url,
         servings=parsed.get("servings"),
         ingredients=[
-            {"name": ing.get("name", ""), **{k: ing.get(k) for k in ["quantity", "unit", "group_name", "note"]}}
+            IngredientCreate(
+                name=ing.get("name", ""),
+                quantity=ing.get("quantity"),
+                unit=ing.get("unit"),
+                group_name=ing.get("group_name"),
+                note=ing.get("note"),
+            )
             for ing in parsed.get("ingredients", [])
         ],
-        steps=[
-            {"step_number": s.get("step_number", i + 1), "description": s.get("description", "")}
-            for i, s in enumerate(parsed.get("steps", []))
-        ],
+        steps=steps,
     )
 
     return repo.create(recipe_data)
@@ -135,7 +154,7 @@ def record_recipe_viewed(id: int, username: str = Depends(get_current_username))
     main_ingredients = [
         ing.name
         for ing in recipe.ingredients
-        if is_main_ingredient(ing.name, ing.unit)
+        if ing.name is not None and is_main_ingredient(ing.name, ing.unit)
     ]
     repo.record_viewed_ingredients(username, main_ingredients)
     repo.record_viewed_recipe(username, id)

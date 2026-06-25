@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { importRecipeFromUrl, DuplicateUrlError } from '../api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 
 interface Props {
   onSuccess?: () => void
@@ -19,9 +20,11 @@ export default function ImportFromUrl({ onSuccess }: Props) {
     if (!url.trim()) return
     setError(null)
     setLoading(true)
+    const normalizedUrl = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`
     try {
-      const recipe = await importRecipeFromUrl(url.trim())
+      const recipe = await importRecipeFromUrl(normalizedUrl)
       setUrl('')
+      toast.success(`「${recipe.name}」を登録しました`)
       onSuccess?.()
       navigate(`/recipe/${recipe.id}`)
     } catch (err) {
@@ -41,7 +44,7 @@ export default function ImportFromUrl({ onSuccess }: Props) {
     <div>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <Input
-          type="url"
+          type="text"
           value={url}
           onChange={e => setUrl(e.target.value)}
           placeholder="https://example.com/recipe/..."

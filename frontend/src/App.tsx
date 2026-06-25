@@ -9,6 +9,7 @@ import LoginPage from './LoginPage'
 import ImportFromUrl from './components/ImportFromUrl'
 import { Button } from '@/components/ui/button'
 import { login, logout, checkAuth } from './api'
+import { Toaster } from 'sonner'
 
 export default function App() {
   const [authed, setAuthed] = useState(false)
@@ -173,6 +174,7 @@ export default function App() {
           </div>
         </div>
       )}
+      <Toaster position="top-center" richColors />
     </BrowserRouter>
   )
 }
