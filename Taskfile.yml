@@ -19,10 +19,10 @@ tasks:
       - npm run dev
 
   dev:backend:
-    desc: "FastAPI サーバーを起動 (port 8000)"
+    desc: "FastAPI サーバーを起動 (port 8001)"
     dir: backend
     cmds:
-      - uvicorn main:app --reload
+      - uvicorn main:app --reload --port 8001
 
   install:
     desc: "フロントエンドの依存パッケージをインストール"

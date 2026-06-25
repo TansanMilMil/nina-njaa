@@ -25,7 +25,7 @@ services:
     build:
       context: ./nginx
     ports:
-      - "80:80"
+      - "8090:80"
     volumes:
       - static:/usr/share/nginx/html
     depends_on:
