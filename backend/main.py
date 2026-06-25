@@ -11,6 +11,7 @@ from jose import JWTError, jwt
 from openai import OpenAI
 from pydantic import BaseModel
 
+from ingredient_filter import is_main_ingredient
 from models import Recipe, RecipeCreate, RecipeDetail, RecipeUpdate
 from repository.sqlite import SQLiteRecipeRepository
 
@@ -205,7 +206,12 @@ def record_recipe_viewed(id: int, username: str = Depends(get_current_username))
     recipe = repo.get_by_id(id)
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
-    repo.record_viewed_ingredients(username, [ing.name for ing in recipe.ingredients])
+    main_ingredients = [
+        ing.name
+        for ing in recipe.ingredients
+        if is_main_ingredient(ing.name, ing.unit)
+    ]
+    repo.record_viewed_ingredients(username, main_ingredients)
 
 
 @app.get("/api/ingredients/suggestions", response_model=list[str])
