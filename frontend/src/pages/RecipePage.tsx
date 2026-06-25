@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { getRecipe, updateRecipe, recordRecipeViewed } from '../api'
 import type { RecipeDetail, Ingredient } from '../api'
 import BookmarkButton from '../components/BookmarkButton'
@@ -300,7 +300,9 @@ export default function RecipePage() {
             <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
               {items.map(ing => (
                 <li key={ing.id}>
-                  {ing.name}
+                  <Link to={`/?q=${encodeURIComponent(ing.name)}`} style={{ color: 'inherit', textDecoration: 'underline', textDecorationColor: '#ccc', textUnderlineOffset: '2px' }}>
+                    {ing.name}
+                  </Link>
                   {(ing.quantity || ing.unit) && (
                     <>
                       {' '}

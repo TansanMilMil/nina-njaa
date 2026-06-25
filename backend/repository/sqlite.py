@@ -138,7 +138,7 @@ class SQLiteRecipeRepository(RecipeRepositoryBase):
                 WHERE username = ?
                 GROUP BY ingredient_name
                 ORDER BY COUNT(*) DESC, MAX(id) DESC
-                LIMIT 10
+                LIMIT 20
                 """,
                 (username,),
             ).fetchall()
