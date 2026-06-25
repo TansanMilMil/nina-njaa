@@ -1,362 +1,72 @@
 import os
-import re
 import sqlite3
-from datetime import datetime, timezone
 
-from models import Ingredient, Recipe, RecipeCreate, RecipeDetail, RecipeUpdate, Step
+from repository._bookmark import _BookmarkMixin
+from repository._recipe_crud import _RecipeCRUDMixin
+from repository._view_history import _ViewHistoryMixin
 from repository.base import RecipeRepositoryBase
 
 
-class SQLiteRecipeRepository(RecipeRepositoryBase):
+_SCHEMA_STATEMENTS = (
+    """
+    CREATE TABLE IF NOT EXISTS viewed_ingredients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        ingredient_name TEXT NOT NULL,
+        viewed_at TEXT NOT NULL
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_vi_username ON viewed_ingredients(username)",
+    """
+    CREATE TABLE IF NOT EXISTS viewed_recipes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        recipe_id INTEGER NOT NULL,
+        viewed_at TEXT NOT NULL
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_vr_username ON viewed_recipes(username)",
+    """
+    CREATE TABLE IF NOT EXISTS recipe_bookmarks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        recipe_id INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(username, recipe_id)
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_rb_username ON recipe_bookmarks(username)",
+    """
+    CREATE TABLE IF NOT EXISTS ingredient_bookmarks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        ingredient_name TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(username, ingredient_name)
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_ib_username ON ingredient_bookmarks(username)",
+)
+
+
+class SQLiteRecipeRepository(
+    _RecipeCRUDMixin,
+    _ViewHistoryMixin,
+    _BookmarkMixin,
+    RecipeRepositoryBase,
+):
     def __init__(self, db_path: str):
         if not os.path.exists(db_path):
             raise FileNotFoundError(f"データベースファイルが見つかりません: {db_path}")
         self.db_path = db_path
         self._ensure_schema()
 
-    def _ensure_schema(self) -> None:
-        with self._connect() as con:
-            con.execute(
-                """
-                CREATE TABLE IF NOT EXISTS viewed_ingredients (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT NOT NULL,
-                    ingredient_name TEXT NOT NULL,
-                    viewed_at TEXT NOT NULL
-                )
-                """
-            )
-            con.execute(
-                "CREATE INDEX IF NOT EXISTS idx_vi_username ON viewed_ingredients(username)"
-            )
-            con.execute(
-                """
-                CREATE TABLE IF NOT EXISTS viewed_recipes (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT NOT NULL,
-                    recipe_id INTEGER NOT NULL,
-                    viewed_at TEXT NOT NULL
-                )
-                """
-            )
-            con.execute(
-                "CREATE INDEX IF NOT EXISTS idx_vr_username ON viewed_recipes(username)"
-            )
-            con.execute(
-                """
-                CREATE TABLE IF NOT EXISTS recipe_bookmarks (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT NOT NULL,
-                    recipe_id INTEGER NOT NULL,
-                    created_at TEXT NOT NULL,
-                    UNIQUE(username, recipe_id)
-                )
-                """
-            )
-            con.execute(
-                "CREATE INDEX IF NOT EXISTS idx_rb_username ON recipe_bookmarks(username)"
-            )
-            con.execute(
-                """
-                CREATE TABLE IF NOT EXISTS ingredient_bookmarks (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT NOT NULL,
-                    ingredient_name TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    UNIQUE(username, ingredient_name)
-                )
-                """
-            )
-            con.execute(
-                "CREATE INDEX IF NOT EXISTS idx_ib_username ON ingredient_bookmarks(username)"
-            )
-
     def _connect(self) -> sqlite3.Connection:
         con = sqlite3.connect(self.db_path)
         con.row_factory = sqlite3.Row
         return con
 
-    def search(self, q: str) -> list[Recipe]:
+    def _ensure_schema(self) -> None:
         with self._connect() as con:
-            if q:
-                tokens = [t for t in re.split(r'[ 　]+', q.strip()) if t]
-                conditions = " AND ".join("(r.name LIKE ? OR i.name LIKE ?)" for _ in tokens)
-                params = tuple(p for t in tokens for p in (f"%{t}%", f"%{t}%"))
-                rows = con.execute(
-                    f"""
-                    SELECT DISTINCT r.*,
-                           (SELECT GROUP_CONCAT(i2.name, '|||')
-                            FROM ingredients i2
-                            WHERE i2.recipe_id = r.id
-                            ORDER BY i2.sort_order) AS ingredient_names_concat
-                    FROM recipes r
-                    LEFT JOIN ingredients i ON i.recipe_id = r.id
-                    WHERE {conditions}
-                    LIMIT 100
-                    """,
-                    params,
-                ).fetchall()
-            else:
-                rows = con.execute(
-                    """
-                    SELECT r.*,
-                           (SELECT GROUP_CONCAT(i2.name, '|||')
-                            FROM ingredients i2
-                            WHERE i2.recipe_id = r.id
-                            ORDER BY i2.sort_order) AS ingredient_names_concat
-                    FROM recipes r
-                    LIMIT 100
-                    """
-                ).fetchall()
-        result = []
-        for row in rows:
-            d = dict(row)
-            concat = d.pop("ingredient_names_concat", None)
-            ingredient_names = concat.split("|||") if concat else []
-            result.append(Recipe(**d, ingredient_names=ingredient_names))
-        return result
-
-    def get_by_id(self, id: int) -> RecipeDetail | None:
-        with self._connect() as con:
-            recipe_row = con.execute(
-                "SELECT * FROM recipes WHERE id = ?", (id,)
-            ).fetchone()
-            if recipe_row is None:
-                return None
-
-            ingredient_rows = con.execute(
-                "SELECT * FROM ingredients WHERE recipe_id = ? ORDER BY sort_order",
-                (id,),
-            ).fetchall()
-            step_rows = con.execute(
-                "SELECT * FROM steps WHERE recipe_id = ? ORDER BY step_number",
-                (id,),
-            ).fetchall()
-
-        return RecipeDetail(
-            **dict(recipe_row),
-            ingredients=[Ingredient(**dict(row)) for row in ingredient_rows],
-            steps=[Step(**dict(row)) for row in step_rows],
-        )
-
-    def get_by_url(self, url: str) -> Recipe | None:
-        with self._connect() as con:
-            row = con.execute(
-                "SELECT * FROM recipes WHERE source_url = ?", (url,)
-            ).fetchone()
-        return Recipe(**dict(row)) if row else None
-
-    def create(self, data: RecipeCreate) -> RecipeDetail:
-        scraped_at = datetime.now(timezone.utc).isoformat()
-        with self._connect() as con:
-            cur = con.execute(
-                "INSERT INTO recipes (name, source_url, servings, scraped_at) VALUES (?, ?, ?, ?)",
-                (data.name, data.source_url, data.servings, scraped_at),
-            )
-            recipe_id = cur.lastrowid
-
-            for i, ing in enumerate(data.ingredients):
-                sort_order = ing.sort_order if ing.sort_order is not None else i
-                con.execute(
-                    "INSERT INTO ingredients (recipe_id, group_name, sort_order, name, quantity, unit, note) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (recipe_id, ing.group_name, sort_order, ing.name, ing.quantity, ing.unit, ing.note),
-                )
-
-            for step in data.steps:
-                con.execute(
-                    "INSERT INTO steps (recipe_id, step_number, description) VALUES (?, ?, ?)",
-                    (recipe_id, step.step_number, step.description),
-                )
-
-        return self.get_by_id(recipe_id)
-
-    def record_viewed_ingredients(self, username: str, ingredient_names: list[str]) -> None:
-        if not ingredient_names:
-            return
-        viewed_at = datetime.now(timezone.utc).isoformat()
-        with self._connect() as con:
-            con.executemany(
-                "INSERT INTO viewed_ingredients (username, ingredient_name, viewed_at) VALUES (?, ?, ?)",
-                [(username, name, viewed_at) for name in ingredient_names],
-            )
-            con.execute(
-                """
-                DELETE FROM viewed_ingredients
-                WHERE username = ? AND id NOT IN (
-                    SELECT id FROM viewed_ingredients
-                    WHERE username = ?
-                    ORDER BY id DESC
-                    LIMIT 1000
-                )
-                """,
-                (username, username),
-            )
-
-    def record_viewed_recipe(self, username: str, recipe_id: int) -> None:
-        viewed_at = datetime.now(timezone.utc).isoformat()
-        with self._connect() as con:
-            con.execute(
-                "INSERT INTO viewed_recipes (username, recipe_id, viewed_at) VALUES (?, ?, ?)",
-                (username, recipe_id, viewed_at),
-            )
-            con.execute(
-                """
-                DELETE FROM viewed_recipes
-                WHERE username = ? AND id NOT IN (
-                    SELECT id FROM viewed_recipes
-                    WHERE username = ?
-                    ORDER BY id DESC
-                    LIMIT 1000
-                )
-                """,
-                (username, username),
-            )
-
-    def get_recent_viewed_recipes(self, username: str, limit: int = 30) -> list[Recipe]:
-        with self._connect() as con:
-            id_rows = con.execute(
-                """
-                SELECT recipe_id
-                FROM viewed_recipes
-                WHERE username = ?
-                GROUP BY recipe_id
-                ORDER BY MAX(id) DESC
-                LIMIT ?
-                """,
-                (username, limit),
-            ).fetchall()
-            recipe_ids = [row["recipe_id"] for row in id_rows]
-            recipes = []
-            for recipe_id in recipe_ids:
-                row = con.execute(
-                    """
-                    SELECT r.*,
-                           (SELECT GROUP_CONCAT(i.name, '|||')
-                            FROM ingredients i
-                            WHERE i.recipe_id = r.id
-                            ORDER BY i.sort_order) AS ingredient_names_concat
-                    FROM recipes r WHERE r.id = ?
-                    """,
-                    (recipe_id,),
-                ).fetchone()
-                if row:
-                    d = dict(row)
-                    concat = d.pop("ingredient_names_concat", None)
-                    ingredient_names = concat.split("|||") if concat else []
-                    recipes.append(Recipe(**d, ingredient_names=ingredient_names))
-        return recipes
-
-    def get_recent_viewed_ingredients(self, username: str, limit: int = 100) -> list[str]:
-        with self._connect() as con:
-            rows = con.execute(
-                """
-                SELECT ingredient_name
-                FROM viewed_ingredients
-                WHERE username = ?
-                GROUP BY ingredient_name
-                ORDER BY MAX(id) DESC
-                LIMIT ?
-                """,
-                (username, limit),
-            ).fetchall()
-        return [row["ingredient_name"] for row in rows]
-
-    def get_ingredient_suggestions(self, username: str) -> list[str]:
-        with self._connect() as con:
-            rows = con.execute(
-                """
-                SELECT ingredient_name
-                FROM viewed_ingredients
-                WHERE username = ?
-                GROUP BY ingredient_name
-                ORDER BY COUNT(*) DESC, MAX(id) DESC
-                LIMIT 20
-                """,
-                (username,),
-            ).fetchall()
-        return [row["ingredient_name"] for row in rows]
-
-    def update(self, id: int, data: RecipeUpdate) -> RecipeDetail | None:
-        with self._connect() as con:
-            row = con.execute("SELECT id FROM recipes WHERE id = ?", (id,)).fetchone()
-            if row is None:
-                return None
-
-            con.execute(
-                "UPDATE recipes SET name = ?, source_url = ?, servings = ? WHERE id = ?",
-                (data.name, data.source_url, data.servings, id),
-            )
-
-            con.execute("DELETE FROM ingredients WHERE recipe_id = ?", (id,))
-            for i, ing in enumerate(data.ingredients):
-                sort_order = ing.sort_order if ing.sort_order is not None else i
-                con.execute(
-                    "INSERT INTO ingredients (recipe_id, group_name, sort_order, name, quantity, unit, note) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (id, ing.group_name, sort_order, ing.name, ing.quantity, ing.unit, ing.note),
-                )
-
-            con.execute("DELETE FROM steps WHERE recipe_id = ?", (id,))
-            for step in data.steps:
-                con.execute(
-                    "INSERT INTO steps (recipe_id, step_number, description) VALUES (?, ?, ?)",
-                    (id, step.step_number, step.description),
-                )
-
-        return self.get_by_id(id)
-
-    def delete(self, id: int) -> bool:
-        with self._connect() as con:
-            row = con.execute("SELECT id FROM recipes WHERE id = ?", (id,)).fetchone()
-            if row is None:
-                return False
-            con.execute("DELETE FROM ingredients WHERE recipe_id = ?", (id,))
-            con.execute("DELETE FROM steps WHERE recipe_id = ?", (id,))
-            con.execute("DELETE FROM recipe_bookmarks WHERE recipe_id = ?", (id,))
-            con.execute("DELETE FROM recipes WHERE id = ?", (id,))
-        return True
-
-    def get_recipe_bookmarks(self, username: str) -> list[int]:
-        with self._connect() as con:
-            rows = con.execute(
-                "SELECT recipe_id FROM recipe_bookmarks WHERE username = ? ORDER BY created_at DESC",
-                (username,),
-            ).fetchall()
-        return [row["recipe_id"] for row in rows]
-
-    def add_recipe_bookmark(self, username: str, recipe_id: int) -> None:
-        created_at = datetime.now(timezone.utc).isoformat()
-        with self._connect() as con:
-            con.execute(
-                "INSERT OR IGNORE INTO recipe_bookmarks (username, recipe_id, created_at) VALUES (?, ?, ?)",
-                (username, recipe_id, created_at),
-            )
-
-    def remove_recipe_bookmark(self, username: str, recipe_id: int) -> None:
-        with self._connect() as con:
-            con.execute(
-                "DELETE FROM recipe_bookmarks WHERE username = ? AND recipe_id = ?",
-                (username, recipe_id),
-            )
-
-    def get_ingredient_bookmarks(self, username: str) -> list[str]:
-        with self._connect() as con:
-            rows = con.execute(
-                "SELECT ingredient_name FROM ingredient_bookmarks WHERE username = ? ORDER BY created_at DESC",
-                (username,),
-            ).fetchall()
-        return [row["ingredient_name"] for row in rows]
-
-    def add_ingredient_bookmark(self, username: str, ingredient_name: str) -> None:
-        created_at = datetime.now(timezone.utc).isoformat()
-        with self._connect() as con:
-            con.execute(
-                "INSERT OR IGNORE INTO ingredient_bookmarks (username, ingredient_name, created_at) VALUES (?, ?, ?)",
-                (username, ingredient_name, created_at),
-            )
-
-    def remove_ingredient_bookmark(self, username: str, ingredient_name: str) -> None:
-        with self._connect() as con:
-            con.execute(
-                "DELETE FROM ingredient_bookmarks WHERE username = ? AND ingredient_name = ?",
-                (username, ingredient_name),
-            )
+            for stmt in _SCHEMA_STATEMENTS:
+                con.execute(stmt)
