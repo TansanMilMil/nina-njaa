@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 from datetime import datetime, timezone
 
@@ -37,9 +38,11 @@ class SQLiteRecipeRepository(RecipeRepositoryBase):
     def search(self, q: str) -> list[Recipe]:
         with self._connect() as con:
             if q:
-                like = f"%{q}%"
+                tokens = [t for t in re.split(r'[ 　]+', q.strip()) if t]
+                conditions = " AND ".join("(r.name LIKE ? OR i.name LIKE ?)" for _ in tokens)
+                params = tuple(p for t in tokens for p in (f"%{t}%", f"%{t}%"))
                 rows = con.execute(
-                    """
+                    f"""
                     SELECT DISTINCT r.*,
                            (SELECT GROUP_CONCAT(i2.name, '|||')
                             FROM ingredients i2
@@ -47,10 +50,10 @@ class SQLiteRecipeRepository(RecipeRepositoryBase):
                             ORDER BY i2.sort_order) AS ingredient_names_concat
                     FROM recipes r
                     LEFT JOIN ingredients i ON i.recipe_id = r.id
-                    WHERE r.name LIKE ? OR i.name LIKE ?
+                    WHERE {conditions}
                     LIMIT 100
                     """,
-                    (like, like),
+                    params,
                 ).fetchall()
             else:
                 rows = con.execute(
