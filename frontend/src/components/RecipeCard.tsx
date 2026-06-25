@@ -3,9 +3,10 @@ import type { Recipe } from '../api'
 
 interface RecipeCardProps {
   recipe: Recipe
+  isBookmarked?: boolean
 }
 
-export default function RecipeCard({ recipe }: RecipeCardProps) {
+export default function RecipeCard({ recipe, isBookmarked }: RecipeCardProps) {
   return (
     <Link
       to={`/recipe/${recipe.id}`}
@@ -20,6 +21,14 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
       }}
     >
       <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>{recipe.name}</span>
+      {isBookmarked && (
+        <span
+          title="ブックマーク済み"
+          style={{ marginLeft: '0.4rem', color: '#f0a500', fontSize: '1rem' }}
+        >
+          ★
+        </span>
+      )}
     </Link>
   )
 }

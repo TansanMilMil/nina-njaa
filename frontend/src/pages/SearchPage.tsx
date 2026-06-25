@@ -12,7 +12,7 @@ export default function SearchPage() {
   const [results, setResults] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
-  const { bookmarks } = useBookmarks()
+  const { bookmarks, isBookmarked } = useBookmarks()
   const [bookmarkRecipes, setBookmarkRecipes] = useState<Recipe[]>([])
 
   useEffect(() => {
@@ -106,7 +106,7 @@ export default function SearchPage() {
             <p style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: '#666', flexShrink: 0 }}>検索中...</p>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1 }}>
-            {results.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} />)}
+            {results.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} isBookmarked={isBookmarked(recipe.id)} />)}
           </div>
         </div>
       )}
