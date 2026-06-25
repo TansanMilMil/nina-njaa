@@ -44,3 +44,28 @@ tasks:
     desc: "初回セットアップ (npm install + DB コピー)"
     cmds:
       - task: install
+
+  up:
+    desc: "Docker Compose でサービスを起動"
+    cmds:
+      - docker compose up -d
+
+  down:
+    desc: "Docker Compose でサービスを停止"
+    cmds:
+      - docker compose down
+
+  build:docker:
+    desc: "Docker イメージをビルド"
+    cmds:
+      - docker compose build
+
+  logs:
+    desc: "全サービスのログを表示 (Ctrl+C で終了)"
+    cmds:
+      - docker compose logs -f
+
+  ps:
+    desc: "サービスの稼働状況を確認"
+    cmds:
+      - docker compose ps

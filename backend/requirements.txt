@@ -1,2 +1,6 @@
 fastapi
 uvicorn[standard]
+openai
+httpx
+beautifulsoup4
+lxml

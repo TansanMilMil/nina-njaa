@@ -77,3 +77,24 @@ export async function getRecipe(id: number): Promise<RecipeDetail> {
   if (!res.ok) throw new Error('Not found')
   return res.json()
 }
+
+export class DuplicateUrlError extends Error {
+  constructor() {
+    super('このURLのレシピはすでに登録されています')
+    this.name = 'DuplicateUrlError'
+  }
+}
+
+export async function importRecipeFromUrl(url: string): Promise<RecipeDetail> {
+  const res = await authFetch(`${BASE}/recipes/from-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
+  if (res.status === 409) throw new DuplicateUrlError()
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'レシピの生成に失敗しました' }))
+    throw new Error(err.detail ?? 'レシピの生成に失敗しました')
+  }
+  return res.json()
+}

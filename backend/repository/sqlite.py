@@ -1,12 +1,15 @@
+import os
 import sqlite3
+from datetime import datetime, timezone
 
-from models import Ingredient, Recipe, RecipeDetail, Step
+from models import Ingredient, Recipe, RecipeCreate, RecipeDetail, Step
 from repository.base import RecipeRepositoryBase
 
 
 class SQLiteRecipeRepository(RecipeRepositoryBase):
     def __init__(self, db_path: str):
         self.db_path = db_path
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
     def _connect(self) -> sqlite3.Connection:
         con = sqlite3.connect(self.db_path)
@@ -54,3 +57,34 @@ class SQLiteRecipeRepository(RecipeRepositoryBase):
             ingredients=[Ingredient(**dict(row)) for row in ingredient_rows],
             steps=[Step(**dict(row)) for row in step_rows],
         )
+
+    def get_by_url(self, url: str) -> Recipe | None:
+        with self._connect() as con:
+            row = con.execute(
+                "SELECT * FROM recipes WHERE source_url = ?", (url,)
+            ).fetchone()
+        return Recipe(**dict(row)) if row else None
+
+    def create(self, data: RecipeCreate) -> RecipeDetail:
+        scraped_at = datetime.now(timezone.utc).isoformat()
+        with self._connect() as con:
+            cur = con.execute(
+                "INSERT INTO recipes (name, source_url, servings, scraped_at) VALUES (?, ?, ?, ?)",
+                (data.name, data.source_url, data.servings, scraped_at),
+            )
+            recipe_id = cur.lastrowid
+
+            for i, ing in enumerate(data.ingredients):
+                sort_order = ing.sort_order if ing.sort_order is not None else i
+                con.execute(
+                    "INSERT INTO ingredients (recipe_id, group_name, sort_order, name, quantity, unit, note) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (recipe_id, ing.group_name, sort_order, ing.name, ing.quantity, ing.unit, ing.note),
+                )
+
+            for step in data.steps:
+                con.execute(
+                    "INSERT INTO steps (recipe_id, step_number, description) VALUES (?, ?, ?)",
+                    (recipe_id, step.step_number, step.description),
+                )
+
+        return self.get_by_id(recipe_id)

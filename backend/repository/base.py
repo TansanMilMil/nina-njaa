@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from models import Recipe, RecipeDetail
+from models import Recipe, RecipeCreate, RecipeDetail
 
 
 class RecipeRepositoryBase(ABC):
@@ -9,3 +9,9 @@ class RecipeRepositoryBase(ABC):
 
     @abstractmethod
     def get_by_id(self, id: int) -> RecipeDetail | None: ...
+
+    @abstractmethod
+    def get_by_url(self, url: str) -> Recipe | None: ...
+
+    @abstractmethod
+    def create(self, data: RecipeCreate) -> RecipeDetail: ...

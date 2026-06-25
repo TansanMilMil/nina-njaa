@@ -5,8 +5,9 @@ services:
       - BASIC_AUTH_USER=${BASIC_AUTH_USER:-admin}
       - BASIC_AUTH_PASS=${BASIC_AUTH_PASS:-password}
       - DB_PATH=/app/db/recipes.db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
-      - db-data:/app/db
+      - ./db:/app/db
     networks:
       - app-net
     restart: unless-stopped
@@ -36,7 +37,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  db-data:
   static:
 
 networks:

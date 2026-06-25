@@ -30,3 +30,25 @@ class Recipe(BaseModel):
 class RecipeDetail(Recipe):
     ingredients: list[Ingredient] = []
     steps: list[Step] = []
+
+
+class IngredientCreate(BaseModel):
+    group_name: str | None = None
+    sort_order: int | None = None
+    name: str
+    quantity: str | None = None
+    unit: str | None = None
+    note: str | None = None
+
+
+class StepCreate(BaseModel):
+    step_number: int
+    description: str
+
+
+class RecipeCreate(BaseModel):
+    name: str
+    source_url: str
+    servings: int | None = None
+    ingredients: list[IngredientCreate] = []
+    steps: list[StepCreate] = []
