@@ -20,14 +20,30 @@ export default function RecipeCard({ recipe, isBookmarked }: RecipeCardProps) {
         background: '#fff'
       }}
     >
-      <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>{recipe.name}</span>
-      {isBookmarked && (
-        <span
-          title="ブックマーク済み"
-          style={{ marginLeft: '0.4rem', color: '#f0a500', fontSize: '1rem' }}
+      <div>
+        <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>{recipe.name}</span>
+        {isBookmarked && (
+          <span
+            title="ブックマーク済み"
+            style={{ marginLeft: '0.4rem', color: '#f0a500', fontSize: '1rem' }}
+          >
+            ★
+          </span>
+        )}
+      </div>
+      {recipe.ingredient_names && recipe.ingredient_names.length > 0 && (
+        <div
+          style={{
+            marginTop: '0.2rem',
+            fontSize: '0.78rem',
+            color: '#888',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
         >
-          ★
-        </span>
+          {recipe.ingredient_names.join('・')}
+        </div>
       )}
     </Link>
   )

@@ -4,6 +4,7 @@ export interface Recipe {
   source_url: string
   servings: string | null
   scraped_at: string | null
+  ingredient_names?: string[]
 }
 
 export interface Ingredient {

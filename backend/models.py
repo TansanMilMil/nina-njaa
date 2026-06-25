@@ -25,6 +25,7 @@ class Recipe(BaseModel):
     source_url: str | None = None
     servings: int | None = None
     scraped_at: str | None = None
+    ingredient_names: list[str] = []
 
 
 class RecipeDetail(Recipe):

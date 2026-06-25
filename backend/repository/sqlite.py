@@ -40,7 +40,12 @@ class SQLiteRecipeRepository(RecipeRepositoryBase):
                 like = f"%{q}%"
                 rows = con.execute(
                     """
-                    SELECT DISTINCT r.* FROM recipes r
+                    SELECT DISTINCT r.*,
+                           (SELECT GROUP_CONCAT(i2.name, '|||')
+                            FROM ingredients i2
+                            WHERE i2.recipe_id = r.id
+                            ORDER BY i2.sort_order) AS ingredient_names_concat
+                    FROM recipes r
                     LEFT JOIN ingredients i ON i.recipe_id = r.id
                     WHERE r.name LIKE ? OR i.name LIKE ?
                     LIMIT 100
@@ -49,9 +54,23 @@ class SQLiteRecipeRepository(RecipeRepositoryBase):
                 ).fetchall()
             else:
                 rows = con.execute(
-                    "SELECT * FROM recipes LIMIT 100"
+                    """
+                    SELECT r.*,
+                           (SELECT GROUP_CONCAT(i2.name, '|||')
+                            FROM ingredients i2
+                            WHERE i2.recipe_id = r.id
+                            ORDER BY i2.sort_order) AS ingredient_names_concat
+                    FROM recipes r
+                    LIMIT 100
+                    """
                 ).fetchall()
-        return [Recipe(**dict(row)) for row in rows]
+        result = []
+        for row in rows:
+            d = dict(row)
+            concat = d.pop("ingredient_names_concat", None)
+            ingredient_names = concat.split("|||") if concat else []
+            result.append(Recipe(**d, ingredient_names=ingredient_names))
+        return result
 
     def get_by_id(self, id: int) -> RecipeDetail | None:
         with self._connect() as con:
