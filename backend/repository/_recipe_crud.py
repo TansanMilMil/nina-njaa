@@ -22,8 +22,8 @@ class _RecipeCRUDMixin:
         with self._connect() as con:
             if q:
                 tokens = [t for t in re.split(r'[ 　]+', q.strip()) if t]
-                conditions = " AND ".join("(r.name LIKE ? OR i.name LIKE ?)" for _ in tokens)
-                params = tuple(p for t in tokens for p in (f"%{t}%", f"%{t}%"))
+                conditions = " AND ".join("(r.name LIKE ? OR i.name LIKE ? OR r.source_url LIKE ?)" for _ in tokens)
+                params = tuple(p for t in tokens for p in (f"%{t}%", f"%{t}%", f"%{t}%"))
                 rows = con.execute(
                     f"""
                     SELECT DISTINCT r.*,
