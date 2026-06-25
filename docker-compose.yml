@@ -1,0 +1,44 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      - BASIC_AUTH_USER=${BASIC_AUTH_USER:-admin}
+      - BASIC_AUTH_PASS=${BASIC_AUTH_PASS:-password}
+      - DB_PATH=/app/db/recipes.db
+    volumes:
+      - db-data:/app/db
+    networks:
+      - app-net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    volumes:
+      - static:/static
+    networks:
+      - app-net
+
+  nginx:
+    build:
+      context: ./nginx
+    ports:
+      - "80:80"
+    volumes:
+      - static:/usr/share/nginx/html
+    depends_on:
+      frontend:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+    networks:
+      - app-net
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  static:
+
+networks:
+  app-net:
+    driver: bridge

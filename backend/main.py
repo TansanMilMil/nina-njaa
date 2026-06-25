@@ -33,7 +33,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "recipes.db")
+DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "recipes.db"))
 repo = SQLiteRecipeRepository(DB_PATH)
 
 
