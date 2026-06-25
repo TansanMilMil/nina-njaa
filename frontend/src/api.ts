@@ -32,20 +32,6 @@ export interface RecipeDetail extends Recipe {
 
 const BASE = '/api'
 
-const CREDENTIALS_KEY = 'auth'
-
-export function getCredentials(): string | null {
-  return sessionStorage.getItem(CREDENTIALS_KEY)
-}
-
-export function saveCredentials(user: string, pass: string): void {
-  sessionStorage.setItem(CREDENTIALS_KEY, btoa(`${user}:${pass}`))
-}
-
-export function clearCredentials(): void {
-  sessionStorage.removeItem(CREDENTIALS_KEY)
-}
-
 export class UnauthorizedError extends Error {
   constructor() {
     super('Unauthorized')
@@ -54,18 +40,33 @@ export class UnauthorizedError extends Error {
 }
 
 export async function authFetch(input: string, init: RequestInit = {}): Promise<Response> {
-  const credentials = getCredentials()
-  const headers = new Headers(init.headers)
-  if (credentials) {
-    headers.set('Authorization', `Basic ${credentials}`)
-  }
-  const res = await fetch(input, { ...init, headers })
+  const res = await fetch(input, init)
   if (res.status === 401) {
-    clearCredentials()
     window.dispatchEvent(new Event('unauthorized'))
     throw new UnauthorizedError()
   }
   return res
+}
+
+export async function login(username: string, password: string): Promise<void> {
+  const res = await fetch(`${BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  })
+  if (res.status === 401) throw new UnauthorizedError()
+  if (!res.ok) throw new Error('ログインに失敗しました')
+}
+
+export async function logout(): Promise<void> {
+  await fetch(`${BASE}/auth/logout`, { method: 'POST' })
+}
+
+export async function checkAuth(): Promise<string | null> {
+  const res = await fetch(`${BASE}/auth/me`)
+  if (!res.ok) return null
+  const data = await res.json()
+  return data.username as string
 }
 
 export async function searchRecipes(q: string): Promise<Recipe[]> {

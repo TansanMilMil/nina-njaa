@@ -6,6 +6,7 @@ services:
       - BASIC_AUTH_PASS=${BASIC_AUTH_PASS:-password}
       - DB_PATH=/app/db/recipes.db
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
     volumes:
       - ./db:/app/db
     networks:

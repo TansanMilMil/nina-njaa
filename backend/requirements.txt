@@ -4,3 +4,4 @@ openai
 httpx
 beautifulsoup4
 lxml
+python-jose[cryptography]

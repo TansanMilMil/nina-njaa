@@ -1,12 +1,13 @@
 import json
 import os
 import secrets
+from datetime import datetime, timedelta
 
 import httpx
 from bs4 import BeautifulSoup
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from jose import JWTError, jwt
 from openai import OpenAI
 from pydantic import BaseModel
 
@@ -19,25 +20,35 @@ BASIC_AUTH_PASS = os.environ.get("BASIC_AUTH_PASS")
 if not BASIC_AUTH_USER or not BASIC_AUTH_PASS:
     raise RuntimeError("環境変数 BASIC_AUTH_USER と BASIC_AUTH_PASS を設定してください")
 
-security = HTTPBasic()
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
+if not JWT_SECRET_KEY:
+    raise RuntimeError("環境変数 JWT_SECRET_KEY を設定してください")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_DAYS = int(os.environ.get("JWT_EXPIRE_DAYS", "7"))
 
 
-def verify(credentials: HTTPBasicCredentials = Depends(security)) -> None:
-    user_ok = secrets.compare_digest(credentials.username, BASIC_AUTH_USER)
-    pass_ok = secrets.compare_digest(credentials.password, BASIC_AUTH_PASS)
-    if not (user_ok and pass_ok):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Basic"},
-        )
+def create_access_token(username: str) -> str:
+    expire = datetime.utcnow() + timedelta(days=JWT_EXPIRE_DAYS)
+    return jwt.encode({"sub": username, "exp": expire}, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
-def get_username(credentials: HTTPBasicCredentials = Depends(security)) -> str:
-    return credentials.username
+def get_current_username(request: Request) -> str:
+    token = request.cookies.get("auth_token")
+    if token:
+        try:
+            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+            return str(payload["sub"])
+        except JWTError:
+            pass
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
 
-app = FastAPI(dependencies=[Depends(verify)])
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -47,6 +58,34 @@ app.add_middleware(
 
 DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "..", "db", "recipes.db"))
 repo = SQLiteRecipeRepository(DB_PATH)
+
+
+@app.post("/api/auth/login")
+def login(body: LoginRequest, response: Response):
+    user_ok = secrets.compare_digest(body.username, BASIC_AUTH_USER)
+    pass_ok = secrets.compare_digest(body.password, BASIC_AUTH_PASS)
+    if not (user_ok and pass_ok):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    token = create_access_token(body.username)
+    response.set_cookie(
+        "auth_token",
+        token,
+        httponly=True,
+        samesite="strict",
+        max_age=JWT_EXPIRE_DAYS * 24 * 3600,
+    )
+    return {"ok": True}
+
+
+@app.post("/api/auth/logout")
+def logout(response: Response):
+    response.delete_cookie("auth_token", samesite="strict")
+    return {"ok": True}
+
+
+@app.get("/api/auth/me")
+def me(username: str = Depends(get_current_username)):
+    return {"username": username}
 
 
 class RecipeFromUrlRequest(BaseModel):
@@ -97,12 +136,12 @@ SYSTEM_PROMPT = (
 
 
 @app.get("/api/recipes", response_model=list[Recipe])
-def search_recipes(q: str = Query(default="")):
+def search_recipes(q: str = Query(default=""), _: str = Depends(get_current_username)):
     return repo.search(q)
 
 
 @app.post("/api/recipes/from-url", response_model=RecipeDetail)
-def create_recipe_from_url(body: RecipeFromUrlRequest):
+def create_recipe_from_url(body: RecipeFromUrlRequest, _: str = Depends(get_current_username)):
     if repo.get_by_url(body.url) is not None:
         raise HTTPException(status_code=409, detail="このURLのレシピはすでに登録されています")
 
@@ -153,7 +192,7 @@ def create_recipe_from_url(body: RecipeFromUrlRequest):
 
 
 @app.get("/api/recipes/{id}", response_model=RecipeDetail)
-def get_recipe(id: int):
+def get_recipe(id: int, _: str = Depends(get_current_username)):
     recipe = repo.get_by_id(id)
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
@@ -161,7 +200,7 @@ def get_recipe(id: int):
 
 
 @app.post("/api/recipes/{id}/viewed", status_code=204)
-def record_recipe_viewed(id: int, username: str = Depends(get_username)):
+def record_recipe_viewed(id: int, username: str = Depends(get_current_username)):
     recipe = repo.get_by_id(id)
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
@@ -169,12 +208,12 @@ def record_recipe_viewed(id: int, username: str = Depends(get_username)):
 
 
 @app.get("/api/ingredients/suggestions", response_model=list[str])
-def get_ingredient_suggestions(username: str = Depends(get_username)):
+def get_ingredient_suggestions(username: str = Depends(get_current_username)):
     return repo.get_ingredient_suggestions(username)
 
 
 @app.put("/api/recipes/{id}", response_model=RecipeDetail)
-def update_recipe(id: int, body: RecipeUpdate):
+def update_recipe(id: int, body: RecipeUpdate, _: str = Depends(get_current_username)):
     recipe = repo.update(id, body)
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")

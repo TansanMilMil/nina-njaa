@@ -5,11 +5,20 @@ import RecipePage from './pages/RecipePage'
 import BookmarksPage from './pages/BookmarksPage'
 import LoginPage from './LoginPage'
 import ImportFromUrl from './components/ImportFromUrl'
-import { getCredentials, saveCredentials } from './api'
+import { login, logout, checkAuth } from './api'
 
 export default function App() {
-  const [authed, setAuthed] = useState(() => getCredentials() !== null)
+  const [authed, setAuthed] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [loginError, setLoginError] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
+
+  useEffect(() => {
+    checkAuth().then(username => {
+      setAuthed(username !== null)
+      setLoading(false)
+    })
+  }, [])
 
   useEffect(() => {
     const handleUnauthorized = () => setAuthed(false)
@@ -26,17 +35,31 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [importOpen])
 
-  const handleLogin = (user: string, pass: string) => {
-    saveCredentials(user, pass)
-    setAuthed(true)
+  const handleLogin = async (user: string, pass: string) => {
+    try {
+      await login(user, pass)
+      setAuthed(true)
+      setLoginError(null)
+    } catch {
+      setLoginError('ユーザー名またはパスワードが違います')
+    }
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    setAuthed(false)
   }
 
   const handleImportSuccess = useCallback(() => {
     setImportOpen(false)
   }, [])
 
+  if (loading) {
+    return null
+  }
+
   if (!authed) {
-    return <LoginPage onLogin={handleLogin} />
+    return <LoginPage onLogin={handleLogin} error={loginError} />
   }
 
   return (
@@ -83,6 +106,20 @@ export default function App() {
             <Link to="/bookmarks" style={{ textDecoration: 'none', color: '#333' }}>
               ブックマーク
             </Link>
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: '0.4rem 0.9rem',
+                background: 'none',
+                color: '#6b7280',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+              }}
+            >
+              ログアウト
+            </button>
           </div>
         </header>
         <main style={{ flex: 1, overflowY: 'auto', maxWidth: '720px', width: '100%', margin: '0 auto', padding: '1.5rem', boxSizing: 'border-box' }}>

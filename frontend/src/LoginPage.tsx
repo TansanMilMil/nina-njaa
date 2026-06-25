@@ -1,10 +1,11 @@
 import { useState } from 'react'
 
 interface LoginPageProps {
-  onLogin: (user: string, pass: string) => void
+  onLogin: (user: string, pass: string) => void | Promise<void>
+  error?: string | null
 }
 
-export default function LoginPage({ onLogin }: LoginPageProps) {
+export default function LoginPage({ onLogin, error }: LoginPageProps) {
   const [user, setUser] = useState('')
   const [pass, setPass] = useState('')
 
@@ -46,6 +47,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         >
           ログイン
         </button>
+        {error && (
+          <p style={{ margin: 0, color: '#d33', fontSize: '0.9rem', textAlign: 'center' }}>
+            {error}
+          </p>
+        )}
       </form>
     </main>
   )
