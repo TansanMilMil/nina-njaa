@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
+import { Star } from 'lucide-react'
 import { getRecipe, updateRecipe, recordRecipeViewed, deleteRecipe } from '../api'
 import type { RecipeDetail, Ingredient } from '../api'
 import BookmarkButton from '../components/BookmarkButton'
 import { RecipePageSkeleton } from '../components/Skeleton'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 function groupIngredients(ingredients: Ingredient[]): [string | null, Ingredient[]][] {
   const groups: [string | null, Ingredient[]][] = []
@@ -195,96 +199,100 @@ export default function RecipePage() {
     })
   }
 
-  if (error) return <p>レシピが見つかりませんでした</p>
+  if (error) return <p className="text-muted-foreground">レシピが見つかりませんでした</p>
   if (!recipe) return <RecipePageSkeleton />
 
   if (isEditing && editState) {
     return (
-      <article style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <h1 style={{ margin: 0, flex: 1 }}>編集</h1>
-          <button onClick={handleDelete} disabled={saving || deleting} style={{ color: 'red' }}>
+      <article className="flex flex-col gap-5">
+        <div className="flex items-center gap-2">
+          <h1 className="flex-1 text-2xl font-bold">編集</h1>
+          <Button variant="destructive" size="sm" onClick={handleDelete} disabled={saving || deleting}>
             {deleting ? '削除中...' : '削除'}
-          </button>
-          <button onClick={cancelEditing} disabled={saving || deleting}>キャンセル</button>
-          <button onClick={saveEditing} disabled={saving || deleting}>{saving ? '保存中...' : '保存'}</button>
+          </Button>
+          <Button variant="outline" size="sm" onClick={cancelEditing} disabled={saving || deleting}>
+            キャンセル
+          </Button>
+          <Button size="sm" onClick={saveEditing} disabled={saving || deleting}>
+            {saving ? '保存中...' : '保存'}
+          </Button>
         </div>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <span>レシピ名</span>
-          <input value={editState.name} onChange={e => updateField('name', e.target.value)} />
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium">レシピ名</span>
+          <Input value={editState.name} onChange={e => updateField('name', e.target.value)} />
         </label>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <span>元レシピURL</span>
-          <input value={editState.source_url} onChange={e => updateField('source_url', e.target.value)} />
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium">元レシピURL</span>
+          <Input value={editState.source_url} onChange={e => updateField('source_url', e.target.value)} />
         </label>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <span>人数</span>
-          <input
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium">人数</span>
+          <Input
             type="number"
             value={editState.servings}
             onChange={e => updateField('servings', e.target.value)}
-            style={{ width: '6rem' }}
+            className="w-24"
           />
         </label>
 
         <section>
-          <h2 style={{ fontSize: '1.2rem' }}>材料</h2>
+          <h2 className="mb-3 text-lg font-semibold">材料</h2>
           {editState.ingredients.map((ing, i) => (
-            <div key={i} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-              <input
+            <div key={i} className="mb-2 flex flex-wrap items-center gap-2">
+              <Input
                 placeholder="グループ名"
                 value={ing.group_name}
                 onChange={e => updateIngredient(i, 'group_name', e.target.value)}
-                style={{ width: '7rem' }}
+                className="w-28"
               />
-              <input
+              <Input
                 placeholder="材料名"
                 value={ing.name}
                 onChange={e => updateIngredient(i, 'name', e.target.value)}
-                style={{ flex: 1, minWidth: '7rem' }}
+                className="min-w-28 flex-1"
               />
-              <input
+              <Input
                 placeholder="分量"
                 value={ing.quantity}
                 onChange={e => updateIngredient(i, 'quantity', e.target.value)}
-                style={{ width: '5rem' }}
+                className="w-20"
               />
-              <input
+              <Input
                 placeholder="単位"
                 value={ing.unit}
                 onChange={e => updateIngredient(i, 'unit', e.target.value)}
-                style={{ width: '4rem' }}
+                className="w-16"
               />
-              <input
+              <Input
                 placeholder="備考"
                 value={ing.note}
                 onChange={e => updateIngredient(i, 'note', e.target.value)}
-                style={{ width: '7rem' }}
+                className="w-28"
               />
-              <button onClick={() => removeIngredient(i)}>削除</button>
+              <Button variant="ghost" size="sm" onClick={() => removeIngredient(i)}>削除</Button>
             </div>
           ))}
-          <button onClick={addIngredient}>+ 材料を追加</button>
+          <Button variant="outline" size="sm" onClick={addIngredient}>+ 材料を追加</Button>
         </section>
 
         <section>
-          <h2 style={{ fontSize: '1.2rem' }}>作り方</h2>
+          <h2 className="mb-3 text-lg font-semibold">作り方</h2>
           {editState.steps.map((step, i) => (
-            <div key={i} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-              <span style={{ paddingTop: '0.35rem', minWidth: '1.5rem' }}>{i + 1}.</span>
+            <div key={i} className="mb-2 flex items-start gap-2">
+              <span className="min-w-6 pt-1.5 text-sm">{i + 1}.</span>
               <textarea
                 value={step.description}
                 onChange={e => updateStep(i, e.target.value)}
                 rows={2}
-                style={{ flex: 1 }}
+                className="flex w-full flex-1 rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
               />
-              <button onClick={() => removeStep(i)}>削除</button>
+              <Button variant="ghost" size="sm" onClick={() => removeStep(i)}>削除</Button>
             </div>
           ))}
-          <button onClick={addStep}>+ 手順を追加</button>
+          <Button variant="outline" size="sm" onClick={addStep}>+ 手順を追加</Button>
         </section>
       </article>
     )
@@ -293,10 +301,10 @@ export default function RecipePage() {
   const grouped = groupIngredients(recipe.ingredients)
 
   return (
-    <article style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <h1 style={{ margin: 0, flex: 1 }}>{recipe.name}</h1>
-        <button onClick={startEditing}>編集</button>
+    <article className="flex flex-col gap-5">
+      <div className="flex items-center gap-4">
+        <h1 className="flex-1 text-2xl font-bold">{recipe.name}</h1>
+        <Button variant="outline" size="sm" onClick={startEditing}>編集</Button>
       </div>
 
       <BookmarkButton
@@ -304,41 +312,47 @@ export default function RecipePage() {
         onToggle={() => toggle(recipe.id)}
       />
 
-      <p style={{ margin: 0 }}>
-        <a href={recipe.source_url} target="_blank" rel="noopener noreferrer">
+      <p>
+        <a
+          href={recipe.source_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline-offset-4 hover:underline"
+        >
           元レシピを見る
         </a>
       </p>
 
-      {recipe.servings && <p style={{ margin: 0 }}>人数：{recipe.servings}</p>}
+      {recipe.servings && <p className="text-sm">人数：{recipe.servings}</p>}
 
       <section>
-        <h2 style={{ fontSize: '1.2rem' }}>材料</h2>
+        <h2 className="mb-3 text-lg font-semibold">材料</h2>
         {grouped.map(([groupName, items], gi) => (
-          <div key={gi} style={{ marginBottom: '0.75rem' }}>
-            {groupName && <h3 style={{ fontSize: '1rem', margin: '0.5rem 0' }}>{groupName}</h3>}
-            <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+          <div key={gi} className="mb-3">
+            {groupName && <h3 className="my-2 font-semibold">{groupName}</h3>}
+            <ul className="flex flex-col gap-1.5">
               {items.map(ing => (
-                <li key={ing.id} style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+                <li key={ing.id} className="flex items-baseline gap-1.5">
                   <button
                     type="button"
                     onClick={() => toggleIngredient(ing.name)}
                     title={isIngredientBookmarked(ing.name) ? 'ブックマーク解除' : 'ブックマークする'}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      padding: 0,
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      color: isIngredientBookmarked(ing.name) ? '#f0a500' : '#ccc',
-                      lineHeight: 1,
-                      flexShrink: 0,
-                    }}
+                    className="shrink-0"
                   >
-                    {isIngredientBookmarked(ing.name) ? '★' : '☆'}
+                    <Star
+                      className={cn(
+                        'h-4 w-4',
+                        isIngredientBookmarked(ing.name)
+                          ? 'fill-primary text-primary'
+                          : 'text-muted-foreground/40'
+                      )}
+                    />
                   </button>
-                  <span>
-                    <Link to={`/?q=${encodeURIComponent(ing.name)}`} style={{ color: 'inherit', textDecoration: 'underline', textDecorationColor: '#ccc', textUnderlineOffset: '2px' }}>
+                  <span className="text-sm">
+                    <Link
+                      to={`/?q=${encodeURIComponent(ing.name)}`}
+                      className="underline decoration-muted-foreground/40 underline-offset-2"
+                    >
                       {ing.name}
                     </Link>
                     {(ing.quantity || ing.unit) && (
@@ -348,7 +362,7 @@ export default function RecipePage() {
                         {ing.unit ?? ''}
                       </>
                     )}
-                    {ing.note && <span style={{ color: '#888' }}>（{ing.note}）</span>}
+                    {ing.note && <span className="text-muted-foreground">（{ing.note}）</span>}
                   </span>
                 </li>
               ))}
@@ -358,8 +372,8 @@ export default function RecipePage() {
       </section>
 
       <section>
-        <h2 style={{ fontSize: '1.2rem' }}>作り方</h2>
-        <ol style={{ margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <h2 className="mb-3 text-lg font-semibold">作り方</h2>
+        <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm">
           {recipe.steps.map(step => (
             <li key={step.id}>{step.description}</li>
           ))}

@@ -7,6 +7,7 @@ import { searchRecipes, getIngredientSuggestions, getRecipesByIds } from '../api
 import type { Recipe } from '../api'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
+import { Badge } from '@/components/ui/badge'
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -64,65 +65,49 @@ export default function SearchPage() {
   const showBookmarks = q === ''
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
+    <div className="flex h-full flex-col gap-4 overflow-hidden">
+      <div className="flex flex-shrink-0 flex-col gap-2">
         <SearchBar value={q} onChange={handleChange} />
         {suggestions.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+          <div className="flex flex-wrap gap-1.5">
             {suggestions.map(s => (
-              <button
+              <Badge
                 key={s}
+                variant={q === s ? 'default' : 'secondary'}
                 onClick={() => handleChange(s)}
-                style={{
-                  padding: '0.25rem 0.65rem',
-                  fontSize: '0.8rem',
-                  borderRadius: '999px',
-                  border: '1px solid #ccc',
-                  background: q === s ? '#333' : '#f5f5f5',
-                  color: q === s ? '#fff' : '#333',
-                  cursor: 'pointer',
-                  lineHeight: 1.4,
-                }}
+                className="cursor-pointer rounded-full"
               >
                 {s}
-              </button>
+              </Badge>
             ))}
           </div>
         )}
       </div>
       {showBookmarks ? (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', gap: '1rem' }}>
+        <div className="flex flex-1 flex-col gap-4 overflow-hidden">
           {ingredientBookmarks.length > 0 && (
-            <div style={{ flexShrink: 0 }}>
-              <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem' }}>ブックマーク済み食材</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+            <div className="flex-shrink-0">
+              <h2 className="mb-2 text-lg font-semibold">ブックマーク済み食材</h2>
+              <div className="flex flex-wrap gap-1.5">
                 {ingredientBookmarks.map(name => (
-                  <button
+                  <Badge
                     key={name}
+                    variant="outline"
                     onClick={() => handleChange(name)}
-                    style={{
-                      padding: '0.25rem 0.65rem',
-                      fontSize: '0.8rem',
-                      borderRadius: '999px',
-                      border: '1px solid #f0a500',
-                      background: '#fffbf0',
-                      color: '#333',
-                      cursor: 'pointer',
-                      lineHeight: 1.4,
-                    }}
+                    className="cursor-pointer gap-1 rounded-full border-primary bg-accent/40"
                   >
-                    ★ {name}
-                  </button>
+                    <span className="text-primary">★</span> {name}
+                  </Badge>
                 ))}
               </div>
             </div>
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-            <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.1rem', flexShrink: 0 }}>ブックマーク済みレシピ</h2>
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <h2 className="mb-3 flex-shrink-0 text-lg font-semibold">ブックマーク済みレシピ</h2>
             {bookmarks.length === 0 ? (
-              <p>レシピのブックマークはまだありません</p>
+              <p className="text-sm text-muted-foreground">レシピのブックマークはまだありません</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1 }}>
+              <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
                 {loadingBookmarks
                   ? Array.from({ length: bookmarks.length }, (_, i) => <RecipeCardSkeleton key={i} />)
                   : bookmarkRecipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked />)
@@ -132,13 +117,13 @@ export default function SearchPage() {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+        <div className="flex flex-1 flex-col overflow-hidden">
           {!loading && (
-            <p style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: '#666', flexShrink: 0 }}>
+            <p className="mb-3 flex-shrink-0 text-sm text-muted-foreground">
               {results.length === 0 ? '該当するレシピが見つかりませんでした' : `${results.length}件のレシピが見つかりました`}
             </p>
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1 }}>
+          <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
             {loading
               ? Array.from({ length: 4 }, (_, i) => <RecipeCardSkeleton key={i} />)
               : results.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} isBookmarked={isBookmarked(recipe.id)} />)

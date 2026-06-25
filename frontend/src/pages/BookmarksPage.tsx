@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { X } from 'lucide-react'
 import RecipeCard from '../components/RecipeCard'
 import { RecipeCardSkeleton } from '../components/Skeleton'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
 import { getRecipesByIds } from '../api'
 import type { Recipe } from '../api'
+import { cn } from '@/lib/utils'
 
 type Tab = 'recipes' | 'ingredients'
 
@@ -28,36 +30,32 @@ export default function BookmarksPage() {
     })
   }, [bookmarks])
 
-  const tabStyle = (active: boolean): React.CSSProperties => ({
-    flex: 1,
-    padding: '0.6rem 0',
-    fontSize: '0.95rem',
-    fontWeight: active ? 600 : 400,
-    background: 'none',
-    border: 'none',
-    borderBottom: active ? '2px solid #f0a500' : '2px solid transparent',
-    color: active ? '#f0a500' : '#888',
-    cursor: 'pointer',
-  })
+  const tabClass = (active: boolean) =>
+    cn(
+      'flex-1 border-b-2 py-2.5 text-sm transition-colors',
+      active
+        ? 'border-primary font-semibold text-primary'
+        : 'border-transparent text-muted-foreground hover:text-foreground'
+    )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <h1 style={{ margin: 0, fontSize: '1.4rem' }}>ブックマーク</h1>
+    <div className="flex flex-col gap-4">
+      <h1 className="text-2xl font-bold">ブックマーク</h1>
 
-      <div style={{ display: 'flex', borderBottom: '1px solid #eee' }}>
-        <button style={tabStyle(tab === 'recipes')} onClick={() => setTab('recipes')}>
-          レシピ {bookmarks.length > 0 && <span style={{ fontSize: '0.8rem' }}>({bookmarks.length})</span>}
+      <div className="flex border-b">
+        <button className={tabClass(tab === 'recipes')} onClick={() => setTab('recipes')}>
+          レシピ {bookmarks.length > 0 && <span className="text-xs">({bookmarks.length})</span>}
         </button>
-        <button style={tabStyle(tab === 'ingredients')} onClick={() => setTab('ingredients')}>
-          食材 {ingredientBookmarks.length > 0 && <span style={{ fontSize: '0.8rem' }}>({ingredientBookmarks.length})</span>}
+        <button className={tabClass(tab === 'ingredients')} onClick={() => setTab('ingredients')}>
+          食材 {ingredientBookmarks.length > 0 && <span className="text-xs">({ingredientBookmarks.length})</span>}
         </button>
       </div>
 
       {tab === 'recipes' && (
         bookmarks.length === 0 ? (
-          <p style={{ margin: 0, color: '#888', fontSize: '0.9rem' }}>レシピのブックマークはまだありません</p>
+          <p className="text-sm text-muted-foreground">レシピのブックマークはまだありません</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="flex flex-col gap-3">
             {loadingRecipes
               ? Array.from({ length: bookmarks.length }, (_, i) => <RecipeCardSkeleton key={i} />)
               : recipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked />)
@@ -68,44 +66,24 @@ export default function BookmarksPage() {
 
       {tab === 'ingredients' && (
         ingredientBookmarks.length === 0 ? (
-          <p style={{ margin: 0, color: '#888', fontSize: '0.9rem' }}>食材のブックマークはまだありません</p>
+          <p className="text-sm text-muted-foreground">食材のブックマークはまだありません</p>
         ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div className="flex flex-wrap gap-2">
             {ingredientBookmarks.map(name => (
               <div
                 key={name}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.3rem',
-                  padding: '0.3rem 0.6rem 0.3rem 0.75rem',
-                  border: '1px solid #f0a500',
-                  borderRadius: '999px',
-                  background: '#fffbf0',
-                  fontSize: '0.85rem',
-                }}
+                className="flex items-center gap-1 rounded-full border border-primary bg-accent/40 py-1 pl-3 pr-1 text-sm"
               >
-                <Link
-                  to={`/?q=${encodeURIComponent(name)}`}
-                  style={{ color: '#333', textDecoration: 'none' }}
-                >
+                <Link to={`/?q=${encodeURIComponent(name)}`} className="text-foreground">
                   {name}
                 </Link>
                 <button
                   type="button"
                   onClick={() => toggleIngredient(name)}
                   title="ブックマーク解除"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    padding: 0,
-                    cursor: 'pointer',
-                    fontSize: '0.75rem',
-                    color: '#aaa',
-                    lineHeight: 1,
-                  }}
+                  className="rounded-full p-0.5 text-muted-foreground hover:text-foreground"
                 >
-                  ✕
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </div>
             ))}

@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { X, PlusCircle, Bookmark, Menu, LogOut } from 'lucide-react'
 import SearchPage from './pages/SearchPage'
 import RecipePage from './pages/RecipePage'
 import BookmarksPage from './pages/BookmarksPage'
 import LoginPage from './LoginPage'
 import ImportFromUrl from './components/ImportFromUrl'
+import { Button } from '@/components/ui/button'
 import { login, logout, checkAuth } from './api'
 
 export default function App() {
@@ -12,6 +14,8 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [loginError, setLoginError] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     checkAuth().then(username => {
@@ -35,6 +39,17 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [importOpen])
 
+  useEffect(() => {
+    if (!menuOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    window.addEventListener('mousedown', handleClickOutside)
+    return () => window.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpen])
+
   const handleLogin = async (user: string, pass: string) => {
     try {
       await login(user, pass)
@@ -48,6 +63,7 @@ export default function App() {
   const handleLogout = async () => {
     await logout()
     setAuthed(false)
+    setMenuOpen(false)
   }
 
   const handleImportSuccess = useCallback(() => {
@@ -64,65 +80,50 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <header
-          style={{
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '1rem 1.5rem',
-            borderBottom: '1px solid #eee',
-            background: '#fff'
-          }}
-        >
-          <Link
-            to="/"
-            style={{
-              fontSize: '1.4rem',
-              fontWeight: 700,
-              textDecoration: 'none',
-              color: '#f0a500'
-            }}
-          >
+      <div className="flex h-full flex-col">
+        <header className="flex flex-shrink-0 items-center justify-between border-b bg-background px-6 py-4">
+          <Link to="/" className="text-2xl font-bold text-primary">
             Ninanjaa
           </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button
+          <div className="flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="ghost"
               onClick={() => setImportOpen(true)}
-              style={{
-                padding: '0.4rem 0.9rem',
-                background: '#f0a500',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-              }}
+              aria-label="レシピ登録"
             >
-              レシピ登録
-            </button>
-            <Link to="/bookmarks" style={{ textDecoration: 'none', color: '#333' }}>
-              ブックマーク
-            </Link>
-            <button
-              onClick={handleLogout}
-              style={{
-                padding: '0.4rem 0.9rem',
-                background: 'none',
-                color: '#6b7280',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-              }}
-            >
-              ログアウト
-            </button>
+              <PlusCircle className="h-5 w-5" />
+            </Button>
+            <Button size="icon" variant="ghost" asChild aria-label="ブックマーク">
+              <Link to="/bookmarks">
+                <Bookmark className="h-5 w-5" />
+              </Link>
+            </Button>
+            <div ref={menuRef} className="relative">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setMenuOpen(o => !o)}
+                aria-label="メニュー"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-40 rounded-lg border bg-card shadow-lg z-10">
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted rounded-lg"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    ログアウト
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
-        <main style={{ flex: 1, overflowY: 'auto', maxWidth: '720px', width: '100%', margin: '0 auto', padding: '1.5rem', boxSizing: 'border-box' }}>
+        <main className="mx-auto w-full max-w-3xl flex-1 overflow-y-auto p-6">
           <Routes>
             <Route path="/" element={<SearchPage />} />
             <Route path="/recipe/:id" element={<RecipePage />} />
@@ -134,46 +135,22 @@ export default function App() {
       {importOpen && (
         <div
           onClick={() => setImportOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 100,
-          }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{
-              background: '#fff',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              width: '100%',
-              maxWidth: '520px',
-              margin: '0 1rem',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-            }}
+            className="mx-4 w-full max-w-lg rounded-xl border bg-card p-6 shadow-lg"
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <p style={{ margin: 0, fontWeight: 600, fontSize: '1rem', color: '#333' }}>
-                URLからレシピを登録
-              </p>
-              <button
+            <div className="mb-4 flex items-center justify-between">
+              <p className="font-semibold">URLからレシピを登録</p>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setImportOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '1.2rem',
-                  cursor: 'pointer',
-                  color: '#6b7280',
-                  lineHeight: 1,
-                  padding: '0.2rem',
-                }}
+                aria-label="閉じる"
               >
-                ✕
-              </button>
+                <X className="h-5 w-5" />
+              </Button>
             </div>
             <ImportFromUrl onSuccess={handleImportSuccess} />
           </div>

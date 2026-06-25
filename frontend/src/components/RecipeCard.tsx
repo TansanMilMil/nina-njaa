@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
+import { Star } from 'lucide-react'
 import type { Recipe } from '../api'
+import { cn } from '@/lib/utils'
 
 interface RecipeCardProps {
   recipe: Recipe
@@ -10,38 +12,19 @@ export default function RecipeCard({ recipe, isBookmarked }: RecipeCardProps) {
   return (
     <Link
       to={`/recipe/${recipe.id}`}
-      style={{
-        display: 'block',
-        padding: '0.55rem 0.75rem',
-        border: `1px solid ${isBookmarked ? '#f0a500' : '#ddd'}`,
-        borderRadius: '8px',
-        textDecoration: 'none',
-        color: 'inherit',
-        background: isBookmarked ? '#fffbf0' : '#fff'
-      }}
+      className={cn(
+        'block rounded-lg border bg-card px-3 py-2.5 text-card-foreground shadow-sm transition-colors hover:bg-accent',
+        isBookmarked && 'border-primary bg-accent/40'
+      )}
     >
-      <div>
-        <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>{recipe.name}</span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-sm font-semibold">{recipe.name}</span>
         {isBookmarked && (
-          <span
-            title="ブックマーク済み"
-            style={{ marginLeft: '0.4rem', color: '#f0a500', fontSize: '1rem' }}
-          >
-            ★
-          </span>
+          <Star className="h-4 w-4 shrink-0 fill-primary text-primary" aria-label="ブックマーク済み" />
         )}
       </div>
       {recipe.ingredient_names && recipe.ingredient_names.length > 0 && (
-        <div
-          style={{
-            marginTop: '0.2rem',
-            fontSize: '0.78rem',
-            color: '#888',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <div className="mt-0.5 truncate text-xs text-muted-foreground">
           {recipe.ingredient_names.join('・')}
         </div>
       )}

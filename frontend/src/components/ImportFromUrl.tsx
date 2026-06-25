@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { importRecipeFromUrl, DuplicateUrlError } from '../api'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   onSuccess?: () => void
@@ -37,8 +39,8 @@ export default function ImportFromUrl({ onSuccess }: Props) {
 
   return (
     <div>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '0.5rem' }}>
-        <input
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <Input
           type="url"
           value={url}
           onChange={e => setUrl(e.target.value)}
@@ -46,36 +48,13 @@ export default function ImportFromUrl({ onSuccess }: Props) {
           disabled={loading}
           required
           autoFocus
-          style={{
-            flex: 1,
-            padding: '0.5rem 0.75rem',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            fontSize: '0.9rem',
-            outline: 'none',
-          }}
+          className="flex-1"
         />
-        <button
-          type="submit"
-          disabled={loading || !url.trim()}
-          style={{
-            padding: '0.5rem 1rem',
-            background: loading ? '#9ca3af' : '#f0a500',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '6px',
-            fontWeight: 600,
-            fontSize: '0.9rem',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <Button type="submit" disabled={loading || !url.trim()} className="whitespace-nowrap">
           {loading ? '生成中...' : 'レシピを生成'}
-        </button>
+        </Button>
       </form>
-      {error && (
-        <p style={{ margin: '0.5rem 0 0', color: '#dc2626', fontSize: '0.85rem' }}>{error}</p>
-      )}
+      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
     </div>
   )
 }
