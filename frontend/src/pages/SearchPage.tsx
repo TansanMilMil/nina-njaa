@@ -118,7 +118,7 @@ export default function SearchPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1 }}>
                 {bookmarkRecipes.map(r => (
-                  <RecipeCard key={r.id} recipe={r} />
+                  <RecipeCard key={r.id} recipe={r} isBookmarked />
                 ))}
               </div>
             )}

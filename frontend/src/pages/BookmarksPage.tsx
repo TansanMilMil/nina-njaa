@@ -53,7 +53,7 @@ export default function BookmarksPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {recipes.map(r => (
-              <RecipeCard key={r.id} recipe={r} />
+              <RecipeCard key={r.id} recipe={r} isBookmarked />
             ))}
           </div>
         )

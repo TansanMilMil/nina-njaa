@@ -12,16 +12,16 @@ export default function RecipeCard({ recipe, isBookmarked }: RecipeCardProps) {
       to={`/recipe/${recipe.id}`}
       style={{
         display: 'block',
-        padding: '1rem',
-        border: '1px solid #ddd',
+        padding: '0.55rem 0.75rem',
+        border: `1px solid ${isBookmarked ? '#f0a500' : '#ddd'}`,
         borderRadius: '8px',
         textDecoration: 'none',
         color: 'inherit',
-        background: '#fff'
+        background: isBookmarked ? '#fffbf0' : '#fff'
       }}
     >
       <div>
-        <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>{recipe.name}</span>
+        <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>{recipe.name}</span>
         {isBookmarked && (
           <span
             title="ブックマーク済み"
