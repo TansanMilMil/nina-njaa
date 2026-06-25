@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -6,9 +7,10 @@ import { Button } from '@/components/ui/button'
 interface LoginPageProps {
   onLogin: (user: string, pass: string) => void | Promise<void>
   error?: string | null
+  loading?: boolean
 }
 
-export default function LoginPage({ onLogin, error }: LoginPageProps) {
+export default function LoginPage({ onLogin, error, loading }: LoginPageProps) {
   const [user, setUser] = useState('')
   const [pass, setPass] = useState('')
 
@@ -31,14 +33,18 @@ export default function LoginPage({ onLogin, error }: LoginPageProps) {
               value={user}
               onChange={e => setUser(e.target.value)}
               autoFocus
+              disabled={loading}
             />
             <Input
               type="password"
               placeholder="パスワード"
               value={pass}
               onChange={e => setPass(e.target.value)}
+              disabled={loading}
             />
-            <Button type="submit">ログイン</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'ログイン'}
+            </Button>
             {error && (
               <p className="text-center text-sm text-destructive">{error}</p>
             )}

@@ -12,6 +12,7 @@ import { login, logout, checkAuth } from './api'
 export default function App() {
   const [authed, setAuthed] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -51,12 +52,15 @@ export default function App() {
   }, [menuOpen])
 
   const handleLogin = async (user: string, pass: string) => {
+    setLoginLoading(true)
     try {
       await login(user, pass)
       setAuthed(true)
       setLoginError(null)
     } catch {
       setLoginError('ユーザー名またはパスワードが違います')
+    } finally {
+      setLoginLoading(false)
     }
   }
 
@@ -75,7 +79,7 @@ export default function App() {
   }
 
   if (!authed) {
-    return <LoginPage onLogin={handleLogin} error={loginError} />
+    return <LoginPage onLogin={handleLogin} error={loginError} loading={loginLoading} />
   }
 
   return (
