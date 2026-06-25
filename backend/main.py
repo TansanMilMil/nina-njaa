@@ -221,6 +221,12 @@ def update_recipe(id: int, body: RecipeUpdate, _: str = Depends(get_current_user
     return recipe
 
 
+@app.delete("/api/recipes/{id}", status_code=204)
+def delete_recipe(id: int, _: str = Depends(get_current_username)):
+    if not repo.delete(id):
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+
 @app.get("/api/bookmarks/recipes", response_model=list[int])
 def get_recipe_bookmarks(username: str = Depends(get_current_username)):
     return repo.get_recipe_bookmarks(username)

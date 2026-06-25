@@ -118,6 +118,11 @@ export async function recordRecipeViewed(id: number): Promise<void> {
   await authFetch(`${BASE}/recipes/${id}/viewed`, { method: 'POST' })
 }
 
+export async function deleteRecipe(id: number): Promise<void> {
+  const res = await authFetch(`${BASE}/recipes/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('削除に失敗しました')
+}
+
 export async function getRecipesByIds(ids: number[]): Promise<Recipe[]> {
   const results = await Promise.all(ids.map(id => getRecipe(id).catch(() => null)))
   return results.filter((r): r is RecipeDetail => r !== null)

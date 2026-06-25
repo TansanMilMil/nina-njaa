@@ -222,6 +222,17 @@ class SQLiteRecipeRepository(RecipeRepositoryBase):
 
         return self.get_by_id(id)
 
+    def delete(self, id: int) -> bool:
+        with self._connect() as con:
+            row = con.execute("SELECT id FROM recipes WHERE id = ?", (id,)).fetchone()
+            if row is None:
+                return False
+            con.execute("DELETE FROM ingredients WHERE recipe_id = ?", (id,))
+            con.execute("DELETE FROM steps WHERE recipe_id = ?", (id,))
+            con.execute("DELETE FROM recipe_bookmarks WHERE recipe_id = ?", (id,))
+            con.execute("DELETE FROM recipes WHERE id = ?", (id,))
+        return True
+
     def get_recipe_bookmarks(self, username: str) -> list[int]:
         with self._connect() as con:
             rows = con.execute(

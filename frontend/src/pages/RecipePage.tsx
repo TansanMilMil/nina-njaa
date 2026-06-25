@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { getRecipe, updateRecipe, recordRecipeViewed } from '../api'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { getRecipe, updateRecipe, recordRecipeViewed, deleteRecipe } from '../api'
 import type { RecipeDetail, Ingredient } from '../api'
 import BookmarkButton from '../components/BookmarkButton'
 import { RecipePageSkeleton } from '../components/Skeleton'
@@ -64,6 +64,8 @@ export default function RecipePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editState, setEditState] = useState<EditState | null>(null)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const navigate = useNavigate()
   const { isBookmarked, toggle } = useBookmarks()
   const { isIngredientBookmarked, toggleIngredient } = useIngredientBookmarks()
 
@@ -95,6 +97,18 @@ export default function RecipePage() {
   function cancelEditing() {
     setIsEditing(false)
     setEditState(null)
+  }
+
+  async function handleDelete() {
+    if (!id || !window.confirm(`「${recipe?.name}」を削除しますか？`)) return
+    setDeleting(true)
+    try {
+      await deleteRecipe(Number(id))
+      navigate('/')
+    } catch {
+      alert('削除に失敗しました')
+      setDeleting(false)
+    }
   }
 
   async function saveEditing() {
@@ -189,8 +203,11 @@ export default function RecipePage() {
       <article style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <h1 style={{ margin: 0, flex: 1 }}>編集</h1>
-          <button onClick={cancelEditing} disabled={saving}>キャンセル</button>
-          <button onClick={saveEditing} disabled={saving}>{saving ? '保存中...' : '保存'}</button>
+          <button onClick={handleDelete} disabled={saving || deleting} style={{ color: 'red' }}>
+            {deleting ? '削除中...' : '削除'}
+          </button>
+          <button onClick={cancelEditing} disabled={saving || deleting}>キャンセル</button>
+          <button onClick={saveEditing} disabled={saving || deleting}>{saving ? '保存中...' : '保存'}</button>
         </div>
 
         <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>

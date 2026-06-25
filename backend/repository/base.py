@@ -18,3 +18,6 @@ class RecipeRepositoryBase(ABC):
 
     @abstractmethod
     def update(self, id: int, data: RecipeUpdate) -> RecipeDetail | None: ...
+
+    @abstractmethod
+    def delete(self, id: int) -> bool: ...
