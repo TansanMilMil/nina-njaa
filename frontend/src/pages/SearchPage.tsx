@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import SearchBar from '../components/SearchBar'
 import RecipeCard from '../components/RecipeCard'
-import { searchRecipes, getIngredientSuggestions } from '../api'
+import { searchRecipes, getIngredientSuggestions, getRecipesByIds } from '../api'
 import type { Recipe } from '../api'
 import { useBookmarks } from '../hooks/useBookmarks'
 
@@ -13,10 +13,19 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const { bookmarks } = useBookmarks()
+  const [bookmarkRecipes, setBookmarkRecipes] = useState<Recipe[]>([])
 
   useEffect(() => {
     getIngredientSuggestions().then(setSuggestions).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (bookmarks.length === 0) {
+      setBookmarkRecipes([])
+      return
+    }
+    getRecipesByIds(bookmarks).then(setBookmarkRecipes)
+  }, [bookmarks])
 
   const handleChange = (value: string) => {
     if (value) {
@@ -80,17 +89,8 @@ export default function SearchPage() {
             <p>ブックマークはまだありません</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', overflowY: 'auto', flex: 1 }}>
-              {bookmarks.map(b => (
-                <RecipeCard
-                  key={b.id}
-                  recipe={{
-                    id: b.id,
-                    name: b.name,
-                    source_url: '',
-                    servings: null,
-                    scraped_at: null
-                  }}
-                />
+              {bookmarkRecipes.map(r => (
+                <RecipeCard key={r.id} recipe={r} />
               ))}
             </div>
           )}

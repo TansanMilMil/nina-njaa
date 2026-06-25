@@ -110,6 +110,11 @@ export async function recordRecipeViewed(id: number): Promise<void> {
   await authFetch(`${BASE}/recipes/${id}/viewed`, { method: 'POST' })
 }
 
+export async function getRecipesByIds(ids: number[]): Promise<Recipe[]> {
+  const results = await Promise.all(ids.map(id => getRecipe(id).catch(() => null)))
+  return results.filter((r): r is RecipeDetail => r !== null)
+}
+
 export async function getIngredientSuggestions(): Promise<string[]> {
   const res = await authFetch(`${BASE}/ingredients/suggestions`)
   if (!res.ok) return []

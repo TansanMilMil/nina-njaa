@@ -281,7 +281,7 @@ export default function RecipePage() {
 
       <BookmarkButton
         isBookmarked={isBookmarked(recipe.id)}
-        onToggle={() => toggle({ id: recipe.id, name: recipe.name })}
+        onToggle={() => toggle(recipe.id)}
       />
 
       <p style={{ margin: 0 }}>

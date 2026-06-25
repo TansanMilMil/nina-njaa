@@ -1,8 +1,20 @@
+import { useState, useEffect } from 'react'
 import RecipeCard from '../components/RecipeCard'
 import { useBookmarks } from '../hooks/useBookmarks'
+import { getRecipesByIds } from '../api'
+import type { Recipe } from '../api'
 
 export default function BookmarksPage() {
   const { bookmarks } = useBookmarks()
+  const [recipes, setRecipes] = useState<Recipe[]>([])
+
+  useEffect(() => {
+    if (bookmarks.length === 0) {
+      setRecipes([])
+      return
+    }
+    getRecipesByIds(bookmarks).then(setRecipes)
+  }, [bookmarks])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -11,17 +23,8 @@ export default function BookmarksPage() {
         <p>ブックマークはまだありません</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {bookmarks.map(b => (
-            <RecipeCard
-              key={b.id}
-              recipe={{
-                id: b.id,
-                name: b.name,
-                source_url: '',
-                servings: null,
-                scraped_at: null
-              }}
-            />
+          {recipes.map(r => (
+            <RecipeCard key={r.id} recipe={r} />
           ))}
         </div>
       )}
