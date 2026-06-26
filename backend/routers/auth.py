@@ -5,6 +5,10 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from jose import JWTError, jwt
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 BASIC_AUTH_USER = os.environ.get("NINA_NJAA_BASIC_AUTH_USER")
 BASIC_AUTH_PASS = os.environ.get("NINA_NJAA_BASIC_AUTH_PASS")
@@ -44,7 +48,8 @@ router = APIRouter()
 
 
 @router.post("/api/auth/login")
-def login(body: LoginRequest, response: Response):
+@limiter.limit("5/minute")
+def login(request: Request, body: LoginRequest, response: Response):
     user_ok = secrets.compare_digest(body.username, BASIC_AUTH_USER)
     pass_ok = secrets.compare_digest(body.password, BASIC_AUTH_PASS)
     if not (user_ok and pass_ok):
