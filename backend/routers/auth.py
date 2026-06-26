@@ -21,6 +21,7 @@ if not JWT_SECRET_KEY:
     raise RuntimeError("環境変数 NINA_NJAA_JWT_SECRET_KEY を設定してください")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = int(os.environ.get("NINA_NJAA_JWT_EXPIRE_DAYS", "7"))
+SECURE_COOKIE = os.environ.get("NINA_NJAA_SECURE_COOKIE", "true").lower() == "true"
 
 
 def create_access_token(username: str) -> str:
@@ -60,6 +61,7 @@ def login(request: Request, body: LoginRequest, response: Response):
         token,
         httponly=True,
         samesite="strict",
+        secure=SECURE_COOKIE,
         max_age=JWT_EXPIRE_DAYS * 24 * 3600,
     )
     return {"ok": True}
@@ -67,7 +69,7 @@ def login(request: Request, body: LoginRequest, response: Response):
 
 @router.post("/api/auth/logout")
 def logout(response: Response):
-    response.delete_cookie("auth_token", httponly=True, samesite="strict")
+    response.delete_cookie("auth_token", httponly=True, samesite="strict", secure=SECURE_COOKIE)
     return {"ok": True}
 
 
