@@ -68,6 +68,7 @@ export default function App() {
   }
 
   const handleLogout = async () => {
+    if (!window.confirm('ログアウトしますか？')) return
     await logout()
     setAuthed(false)
     setMenuOpen(false)
@@ -134,6 +135,7 @@ export default function App() {
                     <UtensilsCrossed className="h-4 w-4" />
                     料理記録
                   </Link>
+                  <div className="border-t" />
                   <button
                     type="button"
                     onClick={handleLogout}
