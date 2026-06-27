@@ -10,5 +10,5 @@ case "$NINA_NJAA_CLOUDFRONT_SECRET" in
   *[!A-Za-z0-9_-]*) echo "FATAL: NINA_NJAA_CLOUDFRONT_SECRET contains invalid characters (only A-Za-z0-9_- allowed)" >&2; exit 1 ;;
 esac
 
-envsubst '$NINA_NJAA_CLOUDFRONT_SECRET' < /nginx.conf.template > /etc/nginx/conf.d/default.conf
+envsubst '$NINA_NJAA_CLOUDFRONT_SECRET' < /nginx.template.conf > /etc/nginx/conf.d/default.conf
 exec "$@"

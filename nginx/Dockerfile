@@ -1,5 +1,5 @@
 FROM nginx:alpine
-COPY nginx.conf.template /nginx.conf.template
+COPY nginx.template.conf /nginx.template.conf
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
