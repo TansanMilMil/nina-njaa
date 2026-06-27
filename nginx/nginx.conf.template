@@ -1,9 +1,18 @@
+map $http_x_cloudfront_secret $cloudfront_blocked {
+    default                  1;
+    "${NINA_NJAA_CLOUDFRONT_SECRET}"   0;
+}
+
 server {
     listen 80;
     server_name _;
 
     root /usr/share/nginx/html;
     index index.html;
+
+    if ($cloudfront_blocked) {
+        return 403;
+    }
 
     location /api/ {
         proxy_pass http://backend:8000;

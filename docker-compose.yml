@@ -24,6 +24,8 @@ services:
   nginx:
     build:
       context: ./nginx
+    environment:
+      - NINA_NJAA_CLOUDFRONT_SECRET=${NINA_NJAA_CLOUDFRONT_SECRET:-}
     ports:
       - "8090:80"
     volumes:
