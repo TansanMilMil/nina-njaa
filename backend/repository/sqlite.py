@@ -2,6 +2,7 @@ import os
 import sqlite3
 
 from repository._bookmark import _BookmarkMixin
+from repository._cooked_log import _CookedLogMixin
 from repository._recipe_crud import _RecipeCRUDMixin
 from repository._view_history import _ViewHistoryMixin
 from repository.base import RecipeRepositoryBase
@@ -80,6 +81,15 @@ _SCHEMA_STATEMENTS = (
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_ib_username ON ingredient_bookmarks(username)",
+    """
+    CREATE TABLE IF NOT EXISTS cooked_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        recipe_id INTEGER NOT NULL,
+        cooked_at TEXT NOT NULL
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_cl_username ON cooked_logs(username)",
 )
 
 
@@ -87,6 +97,7 @@ class SQLiteRecipeRepository(
     _RecipeCRUDMixin,
     _ViewHistoryMixin,
     _BookmarkMixin,
+    _CookedLogMixin,
     RecipeRepositoryBase,
 ):
     def __init__(self, db_path: str):

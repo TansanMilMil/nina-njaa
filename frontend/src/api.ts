@@ -196,3 +196,25 @@ export async function addIngredientBookmark(name: string): Promise<void> {
 export async function removeIngredientBookmark(name: string): Promise<void> {
   await sendIngredientBookmark('DELETE', name)
 }
+
+export interface CookedLogEntry {
+  recipe_id: number
+  recipe_name: string | null
+  count: number
+  last_cooked_at: string
+}
+
+export async function addCookedLog(recipe_id: number): Promise<void> {
+  const res = await authFetch(`${BASE}/cooked-logs/${recipe_id}`, { method: 'POST' })
+  assertOk(res, '記録に失敗しました')
+}
+
+export async function getCookedLogs(): Promise<CookedLogEntry[]> {
+  return fetchJsonOr<CookedLogEntry[]>('/cooked-logs', [])
+}
+
+export async function getCookedLogForRecipe(recipe_id: number): Promise<CookedLogEntry | null> {
+  const res = await authFetch(`${BASE}/cooked-logs/${recipe_id}`)
+  if (!res.ok) return null
+  return res.json()
+}

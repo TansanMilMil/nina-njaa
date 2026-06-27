@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { X, PlusCircle, Bookmark, Menu, LogOut, Clock } from 'lucide-react'
+import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed } from 'lucide-react'
 import SearchPage from './pages/SearchPage'
 import RecipePage from './pages/RecipePage'
 import BookmarksPage from './pages/BookmarksPage'
+import CookedLogsPage from './pages/CookedLogsPage'
 import HistoryPage from './pages/HistoryPage'
 import LoginPage from './LoginPage'
 import ImportFromUrl from './components/ImportFromUrl'
@@ -125,6 +126,14 @@ export default function App() {
                     <Clock className="h-4 w-4" />
                     最近見たもの
                   </Link>
+                  <Link
+                    to="/cooked-logs"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted"
+                  >
+                    <UtensilsCrossed className="h-4 w-4" />
+                    料理記録
+                  </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
@@ -145,6 +154,7 @@ export default function App() {
               <Route path="/recipe/:id" element={<RecipePage />} />
               <Route path="/bookmarks" element={<BookmarksPage />} />
               <Route path="/history" element={<HistoryPage />} />
+              <Route path="/cooked-logs" element={<CookedLogsPage />} />
             </Routes>
           </div>
         </main>

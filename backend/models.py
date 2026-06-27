@@ -61,3 +61,10 @@ class RecipeUpdate(BaseModel):
     servings: int | None = None
     ingredients: list[IngredientCreate] = []
     steps: list[StepCreate] = []
+
+
+class CookedLogEntry(BaseModel):
+    recipe_id: int
+    recipe_name: str | None
+    count: int
+    last_cooked_at: str

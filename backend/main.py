@@ -5,7 +5,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
-from routers import auth, bookmarks, history, recipes
+from routers import auth, bookmarks, cooked_logs, history, recipes
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -28,3 +28,4 @@ app.include_router(auth.router)
 app.include_router(recipes.router)
 app.include_router(history.router)
 app.include_router(bookmarks.router)
+app.include_router(cooked_logs.router)

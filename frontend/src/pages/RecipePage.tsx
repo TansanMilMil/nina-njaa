@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Star } from 'lucide-react'
-import { getRecipe, updateRecipe, recordRecipeViewed, deleteRecipe } from '../api'
-import type { RecipeDetail, Ingredient } from '../api'
+import { getRecipe, updateRecipe, recordRecipeViewed, deleteRecipe, addCookedLog, getCookedLogForRecipe } from '../api'
+import type { RecipeDetail, Ingredient, CookedLogEntry } from '../api'
 import BookmarkButton from '../components/BookmarkButton'
 import { RecipePageSkeleton } from '../components/Skeleton'
 import { useBookmarks } from '../hooks/useBookmarks'
@@ -71,6 +71,8 @@ export default function RecipePage() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const navigate = useNavigate()
+  const [cookLogging, setCookLogging] = useState(false)
+  const [cookedLog, setCookedLog] = useState<CookedLogEntry | null>(null)
   const { isBookmarked, toggle } = useBookmarks()
   const { isIngredientBookmarked, toggleIngredient } = useIngredientBookmarks()
 
@@ -85,6 +87,9 @@ export default function RecipePage() {
         if (!cancelled) {
           setRecipe(data)
           recordRecipeViewed(Number(id)).catch(() => {})
+          getCookedLogForRecipe(Number(id)).then(log => {
+            if (!cancelled) setCookedLog(log)
+          }).catch(() => {})
         }
       })
       .catch(() => {
@@ -102,6 +107,20 @@ export default function RecipePage() {
   function cancelEditing() {
     setIsEditing(false)
     setEditState(null)
+  }
+
+  async function handleCookLog() {
+    if (!id) return
+    setCookLogging(true)
+    try {
+      await addCookedLog(Number(id))
+      toast.success('料理記録を追加しました！')
+      getCookedLogForRecipe(Number(id)).then(log => setCookedLog(log)).catch(() => {})
+    } catch {
+      toast.error('記録に失敗しました')
+    } finally {
+      setCookLogging(false)
+    }
   }
 
   async function handleDelete() {
@@ -310,10 +329,26 @@ export default function RecipePage() {
         <Button variant="outline" size="sm" onClick={startEditing}>編集</Button>
       </div>
 
-      <BookmarkButton
-        isBookmarked={isBookmarked(recipe.id)}
-        onToggle={() => toggle(recipe.id)}
-      />
+      <div className="flex flex-wrap items-center gap-3">
+        <BookmarkButton
+          isBookmarked={isBookmarked(recipe.id)}
+          onToggle={() => toggle(recipe.id)}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleCookLog}
+          disabled={cookLogging}
+        >
+          {cookLogging ? '記録中...' : '作った！'}
+        </Button>
+        {cookedLog && (
+          <span className="text-sm text-muted-foreground">
+            {cookedLog.count}回作った・最終:{' '}
+            {new Date(cookedLog.last_cooked_at).toLocaleDateString('ja-JP')}
+          </span>
+        )}
+      </div>
 
       <p>
         <a
