@@ -24,7 +24,7 @@ class _CookedLogMixin:
         with self._connect() as con:
             row = con.execute(
                 """
-                SELECT cl.recipe_id, r.name AS recipe_name,
+                SELECT cl.recipe_id, r.name AS recipe_name, r.image_path,
                        COUNT(*) AS count, MAX(cl.cooked_at) AS last_cooked_at
                 FROM cooked_logs cl
                 LEFT JOIN recipes r ON cl.recipe_id = r.id
@@ -38,6 +38,7 @@ class _CookedLogMixin:
         return CookedLogEntry(
             recipe_id=row["recipe_id"],
             recipe_name=row["recipe_name"],
+            image_path=row["image_path"],
             count=row["count"],
             last_cooked_at=row["last_cooked_at"],
         )
@@ -46,7 +47,7 @@ class _CookedLogMixin:
         with self._connect() as con:
             rows = con.execute(
                 """
-                SELECT cl.recipe_id, r.name AS recipe_name,
+                SELECT cl.recipe_id, r.name AS recipe_name, r.image_path,
                        COUNT(*) AS count, MAX(cl.cooked_at) AS last_cooked_at
                 FROM cooked_logs cl
                 LEFT JOIN recipes r ON cl.recipe_id = r.id
@@ -60,6 +61,7 @@ class _CookedLogMixin:
             CookedLogEntry(
                 recipe_id=row["recipe_id"],
                 recipe_name=row["recipe_name"],
+                image_path=row["image_path"],
                 count=row["count"],
                 last_cooked_at=row["last_cooked_at"],
             )

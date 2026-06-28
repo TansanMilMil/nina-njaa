@@ -25,6 +25,7 @@ class Recipe(BaseModel):
     source_url: str | None = None
     servings: int | None = None
     scraped_at: str | None = None
+    image_path: str | None = None
     ingredient_names: list[str] = []
 
 
@@ -66,5 +67,6 @@ class RecipeUpdate(BaseModel):
 class CookedLogEntry(BaseModel):
     recipe_id: int
     recipe_name: str | None
+    image_path: str | None = None
     count: int
     last_cooked_at: str

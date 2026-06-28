@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Star } from 'lucide-react'
-import { getRecipe, updateRecipe, recordRecipeViewed, deleteRecipe, addCookedLog, getCookedLogForRecipe } from '../api'
+import { Star, X } from 'lucide-react'
+import { getRecipe, updateRecipe, recordRecipeViewed, deleteRecipe, addCookedLog, getCookedLogForRecipe, uploadRecipeImage, deleteRecipeImage } from '../api'
 import type { RecipeDetail, Ingredient, CookedLogEntry } from '../api'
 import BookmarkButton from '../components/BookmarkButton'
 import { RecipePageSkeleton } from '../components/Skeleton'
@@ -73,6 +73,7 @@ export default function RecipePage() {
   const navigate = useNavigate()
   const [cookLogging, setCookLogging] = useState(false)
   const [cookedLog, setCookedLog] = useState<CookedLogEntry | null>(null)
+  const [imageUploading, setImageUploading] = useState(false)
   const { isBookmarked, toggle } = useBookmarks()
   const { isIngredientBookmarked, toggleIngredient } = useIngredientBookmarks()
 
@@ -123,6 +124,33 @@ export default function RecipePage() {
     }
   }
 
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !id) return
+    setImageUploading(true)
+    try {
+      const result = await uploadRecipeImage(Number(id), file)
+      setRecipe(prev => prev ? { ...prev, image_path: `${result.image_path}?t=${Date.now()}` } : prev)
+      toast.success('画像をアップロードしました')
+    } catch {
+      toast.error('アップロードに失敗しました')
+    } finally {
+      setImageUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  async function handleDeleteImage() {
+    if (!id) return
+    try {
+      await deleteRecipeImage(Number(id))
+      setRecipe(prev => prev ? { ...prev, image_path: null } : prev)
+      toast.success('画像を削除しました')
+    } catch {
+      toast.error('削除に失敗しました')
+    }
+  }
+
   async function handleDelete() {
     if (!id || !window.confirm(`「${recipe?.name}」を削除しますか？`)) return
     setDeleting(true)
@@ -158,7 +186,7 @@ export default function RecipePage() {
           description: step.description,
         })),
       })
-      setRecipe(updated)
+      setRecipe({ ...updated, image_path: recipe.image_path })
       setIsEditing(false)
       setEditState(null)
     } catch {
@@ -239,6 +267,29 @@ export default function RecipePage() {
             {saving ? '保存中...' : '保存'}
           </Button>
         </div>
+
+        {recipe.image_path ? (
+          <div className="relative">
+            <img
+              src={`/uploads/${recipe.image_path}`}
+              alt={recipe.name ?? ''}
+              className="w-full rounded-lg object-cover max-h-64"
+            />
+            <button
+              type="button"
+              onClick={handleDeleteImage}
+              className="absolute top-2 right-2 rounded-full bg-black/50 p-1 text-white hover:bg-black/70"
+              aria-label="画像を削除"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted py-6 text-sm text-muted-foreground hover:border-primary hover:text-primary">
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={imageUploading} />
+            {imageUploading ? 'アップロード中...' : '画像を追加'}
+          </label>
+        )}
 
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">レシピ名</span>
@@ -324,6 +375,14 @@ export default function RecipePage() {
 
   return (
     <article className="flex flex-col gap-5">
+      {recipe.image_path && (
+        <img
+          src={`/uploads/${recipe.image_path}`}
+          alt={recipe.name ?? ''}
+          className="w-full rounded-lg object-cover max-h-64"
+        />
+      )}
+
       <div className="flex items-center gap-4">
         <h1 className="flex-1 text-2xl font-bold">{recipe.name}</h1>
         <Button variant="outline" size="sm" onClick={startEditing}>編集</Button>

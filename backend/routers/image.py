@@ -1,0 +1,67 @@
+import io
+import os
+import pathlib
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from PIL import Image
+
+from db import repo
+from routers.auth import get_current_username
+
+UPLOADS_DIR = pathlib.Path(os.environ.get("UPLOADS_DIR", "/app/uploads"))
+ALLOWED_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MAX_IMAGE_LONG_SIDE = 600
+
+
+router = APIRouter()
+
+
+@router.post("/api/recipes/{id}/image")
+def upload_recipe_image(
+    id: int,
+    file: UploadFile = File(...),
+    _: str = Depends(get_current_username),
+):
+    if repo.get_by_id(id) is None:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    if file.content_type not in ALLOWED_IMAGE_MIME_TYPES:
+        raise HTTPException(status_code=415, detail="サポートされていない画像形式です")
+
+    try:
+        raw = file.file.read()
+        img = Image.open(io.BytesIO(raw))
+        img.load()
+    except Exception:
+        raise HTTPException(status_code=422, detail="画像の読み込みに失敗しました")
+
+    if img.mode == "RGBA":
+        background = Image.new("RGB", img.size, (255, 255, 255))
+        background.paste(img, mask=img.split()[3])
+        img = background
+    elif img.mode != "RGB":
+        img = img.convert("RGB")
+
+    if max(img.size) > MAX_IMAGE_LONG_SIDE:
+        img.thumbnail((MAX_IMAGE_LONG_SIDE, MAX_IMAGE_LONG_SIDE))
+
+    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    image_name = f"{id}.jpg"
+    img.save(UPLOADS_DIR / image_name, format="JPEG", quality=80)
+
+    repo.set_image_path(id, image_name)
+    return {"image_path": image_name}
+
+
+@router.delete("/api/recipes/{id}/image", status_code=204)
+def delete_recipe_image(id: int, _: str = Depends(get_current_username)):
+    if repo.get_by_id(id) is None:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    image_path = UPLOADS_DIR / f"{id}.jpg"
+    try:
+        os.remove(image_path)
+    except FileNotFoundError:
+        pass
+
+    repo.set_image_path(id, None)

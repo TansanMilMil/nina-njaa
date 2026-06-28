@@ -9,6 +9,7 @@ services:
       - NINA_NJAA_JWT_SECRET_KEY=${NINA_NJAA_JWT_SECRET_KEY}
     volumes:
       - ./db:/app/db
+      - uploads:/app/uploads
     networks:
       - app-net
     restart: unless-stopped
@@ -30,6 +31,7 @@ services:
       - "8090:80"
     volumes:
       - static:/usr/share/nginx/html
+      - uploads:/usr/share/nginx/uploads
     depends_on:
       frontend:
         condition: service_completed_successfully
@@ -41,6 +43,7 @@ services:
 
 volumes:
   static:
+  uploads:
 
 networks:
   app-net:

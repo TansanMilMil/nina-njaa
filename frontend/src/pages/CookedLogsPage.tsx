@@ -34,21 +34,26 @@ export default function CookedLogsPage() {
       ) : (
         <div className="flex flex-col gap-2">
           {logs.map(entry => (
-            <div
+            <Link
               key={entry.recipe_id}
-              className="flex items-center justify-between rounded-lg border bg-card px-4 py-3"
+              to={`/recipe/${entry.recipe_id}`}
+              className="flex items-center justify-between rounded-lg border bg-card text-card-foreground shadow-sm transition-colors hover:bg-accent"
             >
-              <Link
-                to={`/recipe/${entry.recipe_id}`}
-                className="font-medium hover:underline"
-              >
+              {entry.image_path && (
+                <img
+                  src={`/uploads/${entry.image_path}`}
+                  alt={entry.recipe_name ?? ''}
+                  className="h-20 w-20 shrink-0 rounded-l-lg object-cover"
+                />
+              )}
+              <span className={`flex-1 font-medium ${entry.image_path ? 'px-3 py-3' : 'px-4 py-3'}`}>
                 {entry.recipe_name ?? `レシピ #${entry.recipe_id}`}
-              </Link>
-              <div className="flex flex-col items-end gap-0.5 text-sm text-muted-foreground">
+              </span>
+              <div className="flex shrink-0 flex-col items-end gap-0.5 px-4 py-3 text-sm text-muted-foreground">
                 <span className="font-semibold text-foreground">{entry.count}回</span>
                 <span>最終: {formatDate(entry.last_cooked_at)}</span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

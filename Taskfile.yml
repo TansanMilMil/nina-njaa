@@ -21,6 +21,8 @@ tasks:
   dev:backend:
     desc: "FastAPI サーバーを起動 (port 8001)"
     dir: backend
+    env:
+      UPLOADS_DIR: "{{.ROOT_DIR}}/backend/uploads"
     cmds:
       - .venv/bin/uvicorn main:app --reload --port 8001
 

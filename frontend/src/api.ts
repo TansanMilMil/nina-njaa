@@ -4,6 +4,7 @@ export interface Recipe {
   source_url: string
   servings: string | null
   scraped_at: string | null
+  image_path?: string | null
   ingredient_names?: string[]
 }
 
@@ -200,6 +201,7 @@ export async function removeIngredientBookmark(name: string): Promise<void> {
 export interface CookedLogEntry {
   recipe_id: number
   recipe_name: string | null
+  image_path?: string | null
   count: number
   last_cooked_at: string
 }
@@ -217,4 +219,19 @@ export async function getCookedLogForRecipe(recipe_id: number): Promise<CookedLo
   const res = await authFetch(`${BASE}/cooked-logs/${recipe_id}`)
   if (!res.ok) return null
   return res.json()
+}
+
+export async function uploadRecipeImage(id: number, file: File): Promise<{ image_path: string }> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`/api/recipes/${id}/image`, { method: 'POST', body: form })
+  if (res.status === 401) { window.dispatchEvent(new Event('unauthorized')); throw new Error('unauthorized') }
+  if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail ?? 'upload failed') }
+  return res.json()
+}
+
+export async function deleteRecipeImage(id: number): Promise<void> {
+  const res = await fetch(`/api/recipes/${id}/image`, { method: 'DELETE' })
+  if (res.status === 401) { window.dispatchEvent(new Event('unauthorized')); throw new Error('unauthorized') }
+  if (!res.ok) throw new Error('delete failed')
 }
