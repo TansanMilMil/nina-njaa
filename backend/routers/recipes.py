@@ -15,6 +15,7 @@ from models import (
 )
 from recipe_ai import extract_recipe_from_text
 from routers.auth import get_current_username
+from routers.image import UPLOADS_DIR
 
 
 class RecipeFromUrlRequest(BaseModel):
@@ -125,3 +126,8 @@ def update_recipe(id: int, body: RecipeUpdate, _: str = Depends(get_current_user
 def delete_recipe(id: int, _: str = Depends(get_current_username)):
     if not repo.delete(id):
         raise HTTPException(status_code=404, detail="Recipe not found")
+    image_path = UPLOADS_DIR / f"{id}.jpg"
+    try:
+        image_path.unlink()
+    except FileNotFoundError:
+        pass
