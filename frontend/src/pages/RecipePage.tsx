@@ -187,7 +187,7 @@ export default function RecipePage() {
           description: step.description,
         })),
       })
-      setRecipe({ ...updated, image_path: recipe.image_path })
+      setRecipe({ ...updated, image_path: recipe?.image_path ?? null })
       setIsEditing(false)
       setEditState(null)
     } catch {
