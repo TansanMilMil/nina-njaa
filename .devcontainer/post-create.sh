@@ -8,6 +8,9 @@ sudo apt-get update -qq && sudo apt-get install -y -qq rsync sqlite3
 npm install -g @anthropic-ai/claude-code
 node $(npm root -g)/@anthropic-ai/claude-code/install.cjs
 
+# Antigravity CLI
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+
 # SSH known hosts
 mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 

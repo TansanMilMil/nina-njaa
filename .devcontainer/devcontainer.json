@@ -65,7 +65,8 @@
     "source=${localEnv:HOME}/.claude.json,target=/home/node/.claude.json,type=bind",
     "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind",
     "source=${localEnv:HOME}/.npmrc,target=/home/node/.npmrc,type=bind",
-    "source=${localEnv:HOME}/.vimrc,target=/home/node/.vimrc,type=bind"
+    "source=${localEnv:HOME}/.vimrc,target=/home/node/.vimrc,type=bind",
+    "source=${localEnv:HOME}/.gemini,target=/home/node/.gemini,type=bind"
   ],
   "remoteEnv": {
     "SSH_AUTH_SOCK": "/tmp/ssh-agent.sock"
