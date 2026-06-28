@@ -10,6 +10,7 @@ from routers.auth import get_current_username
 
 UPLOADS_DIR = pathlib.Path(os.environ.get("UPLOADS_DIR", "/app/uploads"))
 ALLOWED_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20MB
 MAX_IMAGE_LONG_SIDE = 600
 
 
@@ -30,6 +31,13 @@ def upload_recipe_image(
 
     try:
         raw = file.file.read()
+    except Exception:
+        raise HTTPException(status_code=422, detail="画像の読み込みに失敗しました")
+
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="ファイルサイズが20MBを超えています")
+
+    try:
         img = Image.open(io.BytesIO(raw))
         img.load()
     except Exception:

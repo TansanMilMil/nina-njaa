@@ -132,8 +132,9 @@ export default function RecipePage() {
       const result = await uploadRecipeImage(Number(id), file)
       setRecipe(prev => prev ? { ...prev, image_path: `${result.image_path}?t=${Date.now()}` } : prev)
       toast.success('画像をアップロードしました')
-    } catch {
-      toast.error('アップロードに失敗しました')
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'アップロードに失敗しました'
+      toast.error(msg)
     } finally {
       setImageUploading(false)
       e.target.value = ''
