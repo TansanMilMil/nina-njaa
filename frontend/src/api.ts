@@ -163,7 +163,7 @@ export class DuplicateUrlError extends Error {
 }
 
 export async function importRecipeFromUrl(url: string): Promise<RecipeDetail> {
-  const res = await authFetch(`${BASE}/recipes/from-url`, jsonInit('POST', { url }))
+  const res = await authFetch(`${BASE}/ai/recipes/from-url`, jsonInit('POST', { url }))
   if (res.status === 409) throw new DuplicateUrlError()
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'レシピの生成に失敗しました' }))
@@ -238,7 +238,7 @@ export interface SuggestResult {
 }
 
 export async function suggestRecipes(query: string): Promise<SuggestResult> {
-  const res = await authFetch(`${BASE}/suggest`, jsonInit('POST', { query }))
+  const res = await authFetch(`${BASE}/ai/suggest`, jsonInit('POST', { query }))
   if (!res.ok) {
     const d = await res.json().catch(() => ({}))
     throw new Error(d.detail ?? '提案の取得に失敗しました')

@@ -30,7 +30,7 @@ def search_recipes(q: str = Query(default="")):
     return repo.search(q)
 
 
-@router.post("/api/recipes/from-url", response_model=RecipeDetail)
+@router.post("/api/ai/recipes/from-url", response_model=RecipeDetail)
 def create_recipe_from_url(
     body: RecipeFromUrlRequest, username: str = Depends(get_current_username)
 ):

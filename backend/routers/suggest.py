@@ -69,7 +69,7 @@ def _ai_extract_keywords(client: OpenAI, query: str) -> list[str]:
         return _fallback_keywords(query)
 
 
-@router.post("/api/suggest")
+@router.post("/api/ai/suggest")
 def suggest_recipes(body: SuggestRequest, _: str = Depends(get_current_username)):
     if not OPENAI_API_KEY:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY が設定されていません")
