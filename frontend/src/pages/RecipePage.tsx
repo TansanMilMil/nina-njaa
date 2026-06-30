@@ -410,10 +410,13 @@ export default function RecipePage() {
             {cookLogging ? '記録中...' : '作った！'}
           </Button>
           {cookedLog && (
-            <span className="text-sm text-muted-foreground">
+            <Link
+              to={`/cooked-logs/${recipe.id}`}
+              className="text-sm text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
+            >
               {cookedLog.count}回作った・最終:{' '}
               {new Date(cookedLog.last_cooked_at).toLocaleDateString('ja-JP')}
-            </span>
+            </Link>
           )}
         </div>
       )}

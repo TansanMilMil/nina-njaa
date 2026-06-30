@@ -5,6 +5,7 @@ import SearchPage from './pages/SearchPage'
 import RecipePage from './pages/RecipePage'
 import BookmarksPage from './pages/BookmarksPage'
 import CookedLogsPage from './pages/CookedLogsPage'
+import CookedLogDetailPage from './pages/CookedLogDetailPage'
 import HistoryPage from './pages/HistoryPage'
 import SuggestPage from './pages/SuggestPage'
 import LoginPage from './LoginPage'
@@ -186,6 +187,7 @@ export default function App() {
                 <Route path="/bookmarks" element={<BookmarksPage />} />
                 <Route path="/history" element={<HistoryPage />} />
                 <Route path="/cooked-logs" element={<CookedLogsPage />} />
+                <Route path="/cooked-logs/:recipeId" element={<CookedLogDetailPage />} />
                 <Route path="/suggest" element={<SuggestPage />} />
               </Routes>
             </div>

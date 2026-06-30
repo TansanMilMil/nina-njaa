@@ -251,3 +251,17 @@ export async function deleteRecipeImage(id: number): Promise<void> {
   if (res.status === 401) { window.dispatchEvent(new Event('unauthorized')); throw new Error('unauthorized') }
   if (!res.ok) throw new Error('delete failed')
 }
+
+export interface CookedLogRawEntry {
+  id: number
+  cooked_at: string
+}
+
+export async function getCookedLogEntries(recipe_id: number): Promise<CookedLogRawEntry[]> {
+  return fetchJsonOr<CookedLogRawEntry[]>(`/cooked-logs/${recipe_id}/entries`, [])
+}
+
+export async function deleteCookedLogEntry(recipe_id: number, entry_id: number): Promise<void> {
+  const res = await authFetch(`${BASE}/cooked-logs/${recipe_id}/entries/${entry_id}`, { method: 'DELETE' })
+  assertOk(res, '削除に失敗しました')
+}

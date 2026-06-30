@@ -36,7 +36,7 @@ export default function CookedLogsPage() {
           {logs.map(entry => (
             <Link
               key={entry.recipe_id}
-              to={`/recipe/${entry.recipe_id}`}
+              to={`/cooked-logs/${entry.recipe_id}`}
               className="flex items-center justify-between rounded-lg border bg-card text-card-foreground shadow-sm transition-colors hover:bg-accent"
             >
               {entry.image_path && (

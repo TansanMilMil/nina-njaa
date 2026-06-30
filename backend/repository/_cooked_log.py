@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Protocol
 
-from models import CookedLogEntry
+from models import CookedLogEntry, CookedLogRawEntry
 
 
 class _ConnectionProvider(Protocol):
@@ -67,3 +67,33 @@ class _CookedLogMixin:
             )
             for row in rows
         ]
+
+    def get_cooked_log_entries(
+        self: _ConnectionProvider, username: str, recipe_id: int
+    ) -> list[CookedLogRawEntry]:
+        with self._connect() as con:
+            rows = con.execute(
+                """
+                SELECT rowid AS id, cooked_at
+                FROM cooked_logs
+                WHERE username = ? AND recipe_id = ?
+                ORDER BY cooked_at DESC
+                """,
+                (username, recipe_id),
+            ).fetchall()
+        return [
+            CookedLogRawEntry(id=row["id"], cooked_at=row["cooked_at"]) for row in rows
+        ]
+
+    def delete_cooked_log_entry(
+        self: _ConnectionProvider, username: str, recipe_id: int, entry_id: int
+    ) -> bool:
+        with self._connect() as con:
+            cur = con.execute(
+                """
+                DELETE FROM cooked_logs
+                WHERE rowid = ? AND username = ? AND recipe_id = ?
+                """,
+                (entry_id, username, recipe_id),
+            )
+        return cur.rowcount > 0
