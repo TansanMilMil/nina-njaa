@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import RecipeCard from '../components/RecipeCard'
 import { RecipeCardSkeleton } from '../components/Skeleton'
 import { useBookmarks } from '../hooks/useBookmarks'
-import { getRecentViewedRecipes, getRecentViewedIngredients } from '../api'
+import { getRecentViewedRecipes, getRecentViewedIngredients, getCookedLogs } from '../api'
 import type { Recipe } from '../api'
 import { cn } from '@/lib/utils'
 
@@ -15,6 +15,7 @@ export default function HistoryPage() {
   const [ingredients, setIngredients] = useState<string[]>([])
   const [loadingRecipes, setLoadingRecipes] = useState(true)
   const [loadingIngredients, setLoadingIngredients] = useState(true)
+  const [cookedCountMap, setCookedCountMap] = useState<Map<number, number>>(new Map())
   const [tab, setTab] = useState<Tab>('recipes')
 
   useEffect(() => {
@@ -26,6 +27,9 @@ export default function HistoryPage() {
       setIngredients(data)
       setLoadingIngredients(false)
     })
+    getCookedLogs().then(logs => {
+      setCookedCountMap(new Map(logs.map(l => [l.recipe_id, l.count])))
+    }).catch(() => {})
   }, [])
 
   const tabClass = (active: boolean) =>
@@ -59,7 +63,7 @@ export default function HistoryPage() {
         ) : (
           <div className="flex flex-col gap-3">
             {recipes.map(r => (
-              <RecipeCard key={r.id} recipe={r} isBookmarked={bookmarks.includes(r.id)} />
+              <RecipeCard key={r.id} recipe={r} isBookmarked={bookmarks.includes(r.id)} cookedCount={cookedCountMap.get(r.id) ?? 0} />
             ))}
           </div>
         )

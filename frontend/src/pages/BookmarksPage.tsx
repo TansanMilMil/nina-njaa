@@ -5,7 +5,7 @@ import RecipeCard from '../components/RecipeCard'
 import { RecipeCardSkeleton } from '../components/Skeleton'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
-import { getRecipesByIds } from '../api'
+import { getRecipesByIds, getCookedLogs } from '../api'
 import type { Recipe } from '../api'
 import { cn } from '@/lib/utils'
 
@@ -16,6 +16,7 @@ export default function BookmarksPage() {
   const { ingredientBookmarks, toggleIngredient } = useIngredientBookmarks()
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loadingRecipes, setLoadingRecipes] = useState(false)
+  const [cookedCountMap, setCookedCountMap] = useState<Map<number, number>>(new Map())
   const [tab, setTab] = useState<Tab>('recipes')
 
   useEffect(() => {
@@ -29,6 +30,12 @@ export default function BookmarksPage() {
       setLoadingRecipes(false)
     })
   }, [bookmarks])
+
+  useEffect(() => {
+    getCookedLogs().then(logs => {
+      setCookedCountMap(new Map(logs.map(l => [l.recipe_id, l.count])))
+    }).catch(() => {})
+  }, [])
 
   const tabClass = (active: boolean) =>
     cn(
@@ -58,7 +65,7 @@ export default function BookmarksPage() {
           <div className="flex flex-col gap-3">
             {loadingRecipes
               ? Array.from({ length: bookmarks.length }, (_, i) => <RecipeCardSkeleton key={i} />)
-              : recipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked onBookmarkToggle={() => toggle(r.id)} />)
+              : recipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked onBookmarkToggle={() => toggle(r.id)} cookedCount={cookedCountMap.get(r.id) ?? 0} />)
             }
           </div>
         )

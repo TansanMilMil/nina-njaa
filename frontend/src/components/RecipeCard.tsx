@@ -7,9 +7,10 @@ interface RecipeCardProps {
   recipe: Recipe
   isBookmarked?: boolean
   onBookmarkToggle?: () => void
+  cookedCount?: number
 }
 
-export default function RecipeCard({ recipe, isBookmarked, onBookmarkToggle }: RecipeCardProps) {
+export default function RecipeCard({ recipe, isBookmarked, onBookmarkToggle, cookedCount }: RecipeCardProps) {
   return (
     <Link
       to={`/recipe/${recipe.id}`}
@@ -45,6 +46,11 @@ export default function RecipeCard({ recipe, isBookmarked, onBookmarkToggle }: R
           {recipe.ingredient_names && recipe.ingredient_names.length > 0 && (
             <div className="mt-0.5 truncate text-xs text-muted-foreground">
               {recipe.ingredient_names.join('・')}
+            </div>
+          )}
+          {cookedCount !== undefined && cookedCount > 0 && (
+            <div className="mt-1 text-xs font-medium text-primary">
+              {cookedCount}回作った
             </div>
           )}
         </div>

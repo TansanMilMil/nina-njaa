@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import SearchBar from '../components/SearchBar'
 import RecipeCard from '../components/RecipeCard'
 import { RecipeCardSkeleton } from '../components/Skeleton'
-import { searchRecipes, getIngredientSuggestions, getRecentViewedRecipes } from '../api'
+import { searchRecipes, getIngredientSuggestions, getRecentViewedRecipes, getCookedLogs } from '../api'
 import type { Recipe } from '../api'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,7 @@ export default function SearchPage() {
   const { isBookmarked } = useBookmarks()
   const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([])
   const [loadingRecent, setLoadingRecent] = useState(false)
+  const [cookedCountMap, setCookedCountMap] = useState<Map<number, number>>(new Map())
   const [showScrollTop, setShowScrollTop] = useState(false)
 
   useEffect(() => {
@@ -27,8 +28,9 @@ export default function SearchPage() {
 
   useEffect(() => {
     setLoadingRecent(true)
-    getRecentViewedRecipes().then(data => {
-      setRecentRecipes(data)
+    Promise.all([getRecentViewedRecipes(), getCookedLogs()]).then(([recipes, logs]) => {
+      setRecentRecipes(recipes)
+      setCookedCountMap(new Map(logs.map(l => [l.recipe_id, l.count])))
       setLoadingRecent(false)
     }).catch(() => setLoadingRecent(false))
   }, [])
@@ -102,7 +104,7 @@ export default function SearchPage() {
               <p className="text-sm text-muted-foreground">まだレシピを閲覧していません</p>
             ) : (
               <div className="flex flex-col gap-3">
-                {recentRecipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked={isBookmarked(r.id)} />)}
+                {recentRecipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked={isBookmarked(r.id)} cookedCount={cookedCountMap.get(r.id) ?? 0} />)}
               </div>
             )}
           </div>

@@ -71,6 +71,7 @@ class _RecipeCRUDMixin:
 
         return RecipeDetail(
             **dict(recipe_row),
+            ingredient_names=[row["name"] for row in ingredient_rows],
             ingredients=[Ingredient(**dict(row)) for row in ingredient_rows],
             steps=[Step(**dict(row)) for row in step_rows],
         )
