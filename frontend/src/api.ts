@@ -5,6 +5,7 @@ export interface Recipe {
   servings: string | null
   scraped_at: string | null
   image_path?: string | null
+  username?: string | null
   ingredient_names?: string[]
 }
 
@@ -27,6 +28,7 @@ export interface Step {
 }
 
 export interface RecipeDetail extends Recipe {
+  username?: string | null
   ingredients: Ingredient[]
   steps: Step[]
 }

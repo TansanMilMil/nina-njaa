@@ -83,12 +83,12 @@ class _RecipeCRUDMixin:
             ).fetchone()
         return Recipe(**dict(row)) if row else None
 
-    def create(self, data: RecipeCreate) -> RecipeDetail:
+    def create(self, data: RecipeCreate, created_by: str | None = None) -> RecipeDetail:
         scraped_at = datetime.now(timezone.utc).isoformat()
         with self._connect() as con:
             cur = con.execute(
-                "INSERT INTO recipes (name, source_url, servings, scraped_at) VALUES (?, ?, ?, ?)",
-                (data.name, data.source_url, data.servings, scraped_at),
+                "INSERT INTO recipes (name, source_url, servings, scraped_at, username) VALUES (?, ?, ?, ?, ?)",
+                (data.name, data.source_url, data.servings, scraped_at, created_by),
             )
             recipe_id = cur.lastrowid
 

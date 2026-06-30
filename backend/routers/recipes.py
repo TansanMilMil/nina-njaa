@@ -14,7 +14,7 @@ from models import (
     StepCreate,
 )
 from recipe_ai import extract_recipe_from_text
-from routers.auth import get_current_username
+from routers.auth import get_current_username, get_optional_username
 from routers.image import UPLOADS_DIR
 
 
@@ -26,13 +26,13 @@ router = APIRouter()
 
 
 @router.get("/api/recipes", response_model=list[Recipe])
-def search_recipes(q: str = Query(default=""), _: str = Depends(get_current_username)):
+def search_recipes(q: str = Query(default="")):
     return repo.search(q)
 
 
 @router.post("/api/recipes/from-url", response_model=RecipeDetail)
 def create_recipe_from_url(
-    body: RecipeFromUrlRequest, _: str = Depends(get_current_username)
+    body: RecipeFromUrlRequest, username: str = Depends(get_current_username)
 ):
     if repo.get_by_url(body.url) is not None:
         raise HTTPException(
@@ -84,11 +84,11 @@ def create_recipe_from_url(
         steps=steps,
     )
 
-    return repo.create(recipe_data)
+    return repo.create(recipe_data, created_by=username)
 
 
 @router.get("/api/recipes/{id}", response_model=RecipeDetail)
-def get_recipe(id: int, _: str = Depends(get_current_username)):
+def get_recipe(id: int):
     recipe = repo.get_by_id(id)
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
@@ -96,10 +96,12 @@ def get_recipe(id: int, _: str = Depends(get_current_username)):
 
 
 @router.post("/api/recipes/{id}/viewed", status_code=204)
-def record_recipe_viewed(id: int, username: str = Depends(get_current_username)):
+def record_recipe_viewed(id: int, username: str | None = Depends(get_optional_username)):
     recipe = repo.get_by_id(id)
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
+    if username is None:
+        return
     main_ingredients = [
         ing.name
         for ing in recipe.ingredients
@@ -115,17 +117,24 @@ def get_ingredient_suggestions(username: str = Depends(get_current_username)):
 
 
 @router.put("/api/recipes/{id}", response_model=RecipeDetail)
-def update_recipe(id: int, body: RecipeUpdate, _: str = Depends(get_current_username)):
-    recipe = repo.update(id, body)
-    if recipe is None:
+def update_recipe(id: int, body: RecipeUpdate, username: str = Depends(get_current_username)):
+    existing = repo.get_by_id(id)
+    if existing is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
+    if existing.username is not None and existing.username != username:
+        raise HTTPException(status_code=403, detail="このレシピを編集する権限がありません")
+    recipe = repo.update(id, body)
     return recipe
 
 
 @router.delete("/api/recipes/{id}", status_code=204)
-def delete_recipe(id: int, _: str = Depends(get_current_username)):
-    if not repo.delete(id):
+def delete_recipe(id: int, username: str = Depends(get_current_username)):
+    existing = repo.get_by_id(id)
+    if existing is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
+    if existing.username is not None and existing.username != username:
+        raise HTTPException(status_code=403, detail="このレシピを削除する権限がありません")
+    repo.delete(id)
     image_path = UPLOADS_DIR / f"{id}.jpg"
     try:
         image_path.unlink()

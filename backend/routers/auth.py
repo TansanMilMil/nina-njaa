@@ -40,6 +40,17 @@ def get_current_username(request: Request) -> str:
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
 
+def get_optional_username(request: Request) -> str | None:
+    token = request.cookies.get("auth_token")
+    if token:
+        try:
+            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+            return str(payload["sub"])
+        except JWTError:
+            pass
+    return None
+
+
 class LoginRequest(BaseModel):
     username: str
     password: str

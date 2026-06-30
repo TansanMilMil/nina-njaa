@@ -26,6 +26,7 @@ class Recipe(BaseModel):
     servings: int | None = None
     scraped_at: str | None = None
     image_path: str | None = None
+    username: str | None = None
     ingredient_names: list[str] = []
 
 

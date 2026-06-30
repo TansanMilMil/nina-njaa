@@ -16,7 +16,8 @@ _SCHEMA_STATEMENTS = (
         source_url TEXT UNIQUE NOT NULL,
         servings INTEGER,
         scraped_at TEXT NOT NULL,
-        image_path TEXT
+        image_path TEXT,
+        username TEXT
     )
     """,
     """
@@ -116,10 +117,14 @@ class SQLiteRecipeRepository(
         with self._connect() as con:
             for stmt in _SCHEMA_STATEMENTS:
                 con.execute(stmt)
-            try:
-                con.execute("ALTER TABLE recipes ADD COLUMN image_path TEXT")
-            except sqlite3.OperationalError:
-                pass
+            for migration in (
+                "ALTER TABLE recipes ADD COLUMN image_path TEXT",
+                "ALTER TABLE recipes ADD COLUMN username TEXT",
+            ):
+                try:
+                    con.execute(migration)
+                except sqlite3.OperationalError:
+                    pass
 
     def set_image_path(self, recipe_id: int, image_path: str | None) -> None:
         with self._connect() as con:

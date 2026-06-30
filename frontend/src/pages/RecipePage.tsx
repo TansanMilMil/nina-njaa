@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useCurrentUser } from '../contexts/UserContext'
 
 function groupIngredients(ingredients: Ingredient[]): [string | null, Ingredient[]][] {
   const groups: [string | null, Ingredient[]][] = []
@@ -76,6 +77,7 @@ export default function RecipePage() {
   const [imageUploading, setImageUploading] = useState(false)
   const { isBookmarked, toggle } = useBookmarks()
   const { isIngredientBookmarked, toggleIngredient } = useIngredientBookmarks()
+  const currentUsername = useCurrentUser()
 
   useEffect(() => {
     if (!id) return
@@ -88,16 +90,18 @@ export default function RecipePage() {
         if (!cancelled) {
           setRecipe(data)
           recordRecipeViewed(Number(id)).catch(() => {})
-          getCookedLogForRecipe(Number(id)).then(log => {
-            if (!cancelled) setCookedLog(log)
-          }).catch(() => {})
+          if (currentUsername) {
+            getCookedLogForRecipe(Number(id)).then(log => {
+              if (!cancelled) setCookedLog(log)
+            }).catch(() => {})
+          }
         }
       })
       .catch(() => {
         if (!cancelled) setError(true)
       })
     return () => { cancelled = true }
-  }, [id])
+  }, [id, currentUsername])
 
   function startEditing() {
     if (!recipe) return
@@ -253,6 +257,8 @@ export default function RecipePage() {
   if (error) return <p className="text-muted-foreground">レシピが見つかりませんでした</p>
   if (!recipe) return <RecipePageSkeleton />
 
+  const canEdit = currentUsername !== null && (recipe.username == null || recipe.username === currentUsername)
+
   if (isEditing && editState) {
     return (
       <article className="flex flex-col gap-5">
@@ -386,29 +392,31 @@ export default function RecipePage() {
 
       <div className="flex items-center gap-4">
         <h1 className="flex-1 text-2xl font-bold">{recipe.name}</h1>
-        <Button variant="outline" size="sm" onClick={startEditing}>編集</Button>
+        {canEdit && <Button variant="outline" size="sm" onClick={startEditing}>編集</Button>}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <BookmarkButton
-          isBookmarked={isBookmarked(recipe.id)}
-          onToggle={() => toggle(recipe.id)}
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleCookLog}
-          disabled={cookLogging}
-        >
-          {cookLogging ? '記録中...' : '作った！'}
-        </Button>
-        {cookedLog && (
-          <span className="text-sm text-muted-foreground">
-            {cookedLog.count}回作った・最終:{' '}
-            {new Date(cookedLog.last_cooked_at).toLocaleDateString('ja-JP')}
-          </span>
-        )}
-      </div>
+      {currentUsername && (
+        <div className="flex flex-wrap items-center gap-3">
+          <BookmarkButton
+            isBookmarked={isBookmarked(recipe.id)}
+            onToggle={() => toggle(recipe.id)}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCookLog}
+            disabled={cookLogging}
+          >
+            {cookLogging ? '記録中...' : '作った！'}
+          </Button>
+          {cookedLog && (
+            <span className="text-sm text-muted-foreground">
+              {cookedLog.count}回作った・最終:{' '}
+              {new Date(cookedLog.last_cooked_at).toLocaleDateString('ja-JP')}
+            </span>
+          )}
+        </div>
+      )}
 
       <p>
         <a

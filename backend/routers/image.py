@@ -21,10 +21,13 @@ router = APIRouter()
 def upload_recipe_image(
     id: int,
     file: UploadFile = File(...),
-    _: str = Depends(get_current_username),
+    username: str = Depends(get_current_username),
 ):
-    if repo.get_by_id(id) is None:
+    recipe = repo.get_by_id(id)
+    if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
+    if recipe.username is not None and recipe.username != username:
+        raise HTTPException(status_code=403, detail="このレシピを編集する権限がありません")
 
     if file.content_type not in ALLOWED_IMAGE_MIME_TYPES:
         raise HTTPException(status_code=415, detail="サポートされていない画像形式です")
@@ -62,9 +65,12 @@ def upload_recipe_image(
 
 
 @router.delete("/api/recipes/{id}/image", status_code=204)
-def delete_recipe_image(id: int, _: str = Depends(get_current_username)):
-    if repo.get_by_id(id) is None:
+def delete_recipe_image(id: int, username: str = Depends(get_current_username)):
+    recipe = repo.get_by_id(id)
+    if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
+    if recipe.username is not None and recipe.username != username:
+        raise HTTPException(status_code=403, detail="このレシピを編集する権限がありません")
 
     image_path = UPLOADS_DIR / f"{id}.jpg"
     try:

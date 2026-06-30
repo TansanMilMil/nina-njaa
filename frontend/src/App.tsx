@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed, Sparkles } from 'lucide-react'
+import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed, Sparkles, LogIn } from 'lucide-react'
 import SearchPage from './pages/SearchPage'
 import RecipePage from './pages/RecipePage'
 import BookmarksPage from './pages/BookmarksPage'
@@ -12,25 +12,27 @@ import ImportFromUrl from './components/ImportFromUrl'
 import { Button } from '@/components/ui/button'
 import { login, logout, checkAuth } from './api'
 import { Toaster } from 'sonner'
+import { UserContext } from './contexts/UserContext'
 
 export default function App() {
-  const [authed, setAuthed] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
+  const [showLogin, setShowLogin] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     checkAuth().then(username => {
-      setAuthed(username !== null)
-      setLoading(false)
+      setCurrentUsername(username)
+      setAuthLoading(false)
     })
   }, [])
 
   useEffect(() => {
-    const handleUnauthorized = () => setAuthed(false)
+    const handleUnauthorized = () => setCurrentUsername(null)
     window.addEventListener('unauthorized', handleUnauthorized)
     return () => window.removeEventListener('unauthorized', handleUnauthorized)
   }, [])
@@ -43,6 +45,15 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [importOpen])
+
+  useEffect(() => {
+    if (!showLogin) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowLogin(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showLogin])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -59,8 +70,9 @@ export default function App() {
     setLoginLoading(true)
     try {
       await login(user, pass)
-      setAuthed(true)
+      setCurrentUsername(user)
       setLoginError(null)
+      setShowLogin(false)
     } catch {
       setLoginError('ユーザー名またはパスワードが違います')
     } finally {
@@ -71,7 +83,7 @@ export default function App() {
   const handleLogout = async () => {
     if (!window.confirm('ログアウトしますか？')) return
     await logout()
-    setAuthed(false)
+    setCurrentUsername(null)
     setMenuOpen(false)
   }
 
@@ -79,121 +91,144 @@ export default function App() {
     setImportOpen(false)
   }, [])
 
-  if (loading) {
+  if (authLoading) {
     return null
   }
 
-  if (!authed) {
-    return <LoginPage onLogin={handleLogin} error={loginError} loading={loginLoading} />
-  }
-
   return (
-    <BrowserRouter>
-      <div className="flex h-full flex-col">
-        <header className="flex flex-shrink-0 items-center justify-between border-b bg-background px-6 py-4">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/nina-njaa-icon.png" alt="Ninanjaa" className="h-8 w-8" />
-            <span className="text-2xl font-bold text-primary">Ninanjaa</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setImportOpen(true)}
-              aria-label="レシピ登録"
-            >
-              <PlusCircle className="h-5 w-5" />
-            </Button>
-            <Button size="icon" variant="ghost" asChild aria-label="おすすめ">
-              <Link to="/suggest">
-                <Sparkles className="h-5 w-5" />
-              </Link>
-            </Button>
-            <Button size="icon" variant="ghost" asChild aria-label="ブックマーク">
-              <Link to="/bookmarks">
-                <Bookmark className="h-5 w-5" />
-              </Link>
-            </Button>
-            <div ref={menuRef} className="relative">
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setMenuOpen(o => !o)}
-                aria-label="メニュー"
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-              {menuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border bg-card shadow-lg z-10">
-                  <Link
-                    to="/history"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted rounded-t-lg"
+    <UserContext.Provider value={currentUsername}>
+      <BrowserRouter>
+        <div className="flex h-full flex-col">
+          <header className="flex flex-shrink-0 items-center justify-between border-b bg-background px-6 py-4">
+            <Link to="/" className="flex items-center gap-2">
+              <img src="/nina-njaa-icon.png" alt="Ninanjaa" className="h-8 w-8" />
+              <span className="text-2xl font-bold text-primary">Ninanjaa</span>
+            </Link>
+            <div className="flex items-center gap-2">
+              {currentUsername ? (
+                <>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setImportOpen(true)}
+                    aria-label="レシピ登録"
                   >
-                    <Clock className="h-4 w-4" />
-                    最近見たもの
-                  </Link>
-                  <Link
-                    to="/cooked-logs"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted"
-                  >
-                    <UtensilsCrossed className="h-4 w-4" />
-                    料理記録
-                  </Link>
-                  <div className="border-t" />
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted rounded-b-lg"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    ログアウト
-                  </button>
-                </div>
+                    <PlusCircle className="h-5 w-5" />
+                  </Button>
+                  <Button size="icon" variant="ghost" asChild aria-label="おすすめ">
+                    <Link to="/suggest">
+                      <Sparkles className="h-5 w-5" />
+                    </Link>
+                  </Button>
+                  <Button size="icon" variant="ghost" asChild aria-label="ブックマーク">
+                    <Link to="/bookmarks">
+                      <Bookmark className="h-5 w-5" />
+                    </Link>
+                  </Button>
+                  <div ref={menuRef} className="relative">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setMenuOpen(o => !o)}
+                      aria-label="メニュー"
+                    >
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                    {menuOpen && (
+                      <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border bg-card shadow-lg z-10">
+                        <Link
+                          to="/history"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted rounded-t-lg"
+                        >
+                          <Clock className="h-4 w-4" />
+                          最近見たもの
+                        </Link>
+                        <Link
+                          to="/cooked-logs"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted"
+                        >
+                          <UtensilsCrossed className="h-4 w-4" />
+                          料理記録
+                        </Link>
+                        <div className="border-t" />
+                        <button
+                          type="button"
+                          onClick={handleLogout}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted rounded-b-lg"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          ログアウト
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowLogin(true)}
+                  className="flex items-center gap-1"
+                >
+                  <LogIn className="h-4 w-4" />
+                  ログイン
+                </Button>
               )}
             </div>
-          </div>
-        </header>
-        <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-3xl p-6">
-            <Routes>
-              <Route path="/" element={<SearchPage />} />
-              <Route path="/recipe/:id" element={<RecipePage />} />
-              <Route path="/bookmarks" element={<BookmarksPage />} />
-              <Route path="/history" element={<HistoryPage />} />
-              <Route path="/cooked-logs" element={<CookedLogsPage />} />
-              <Route path="/suggest" element={<SuggestPage />} />
-            </Routes>
-          </div>
-        </main>
-      </div>
-
-      {importOpen && (
-        <div
-          onClick={() => setImportOpen(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            className="mx-4 w-full max-w-lg rounded-xl border bg-card p-6 shadow-lg"
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <p className="font-semibold">URLからレシピを登録</p>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setImportOpen(false)}
-                aria-label="閉じる"
-              >
-                <X className="h-5 w-5" />
-              </Button>
+          </header>
+          <main className="flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-3xl p-6">
+              <Routes>
+                <Route path="/" element={<SearchPage />} />
+                <Route path="/recipe/:id" element={<RecipePage />} />
+                <Route path="/bookmarks" element={<BookmarksPage />} />
+                <Route path="/history" element={<HistoryPage />} />
+                <Route path="/cooked-logs" element={<CookedLogsPage />} />
+                <Route path="/suggest" element={<SuggestPage />} />
+              </Routes>
             </div>
-            <ImportFromUrl onSuccess={handleImportSuccess} />
-          </div>
+          </main>
         </div>
-      )}
-      <Toaster position="top-center" richColors />
-    </BrowserRouter>
+
+        {showLogin && (
+          <div
+            onClick={() => { setShowLogin(false); setLoginError(null) }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          >
+            <div onClick={e => e.stopPropagation()}>
+              <LoginPage onLogin={handleLogin} error={loginError} loading={loginLoading} />
+            </div>
+          </div>
+        )}
+
+        {importOpen && currentUsername && (
+          <div
+            onClick={() => setImportOpen(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              className="mx-4 w-full max-w-lg rounded-xl border bg-card p-6 shadow-lg"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <p className="font-semibold">URLからレシピを登録</p>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setImportOpen(false)}
+                  aria-label="閉じる"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <ImportFromUrl onSuccess={handleImportSuccess} />
+            </div>
+          </div>
+        )}
+        <Toaster position="top-center" richColors />
+      </BrowserRouter>
+    </UserContext.Provider>
   )
 }
