@@ -7,6 +7,7 @@ import BookmarksPage from './pages/BookmarksPage'
 import CookedLogsPage from './pages/CookedLogsPage'
 import HistoryPage from './pages/HistoryPage'
 import SuggestPage from './pages/SuggestPage'
+import SharePage from './pages/SharePage'
 import LoginPage from './LoginPage'
 import ImportFromUrl from './components/ImportFromUrl'
 import { Button } from '@/components/ui/button'
@@ -164,6 +165,7 @@ export default function App() {
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/cooked-logs" element={<CookedLogsPage />} />
               <Route path="/suggest" element={<SuggestPage />} />
+              <Route path="/share" element={<SharePage />} />
             </Routes>
           </div>
         </main>
