@@ -19,14 +19,5 @@
   "background_color": "#ffffff",
   "display": "standalone",
   "start_url": "/",
-  "scope": "/",
-  "share_target": {
-    "action": "/share",
-    "method": "GET",
-    "params": {
-      "url": "url",
-      "text": "text",
-      "title": "title"
-    }
-  }
+  "scope": "/"
 }
