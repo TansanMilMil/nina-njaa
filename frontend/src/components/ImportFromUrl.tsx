@@ -4,6 +4,7 @@ import { importRecipeFromUrl, DuplicateUrlError } from '../api'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
+import RobotLoading from './RobotLoading'
 
 interface Props {
   onSuccess?: () => void
@@ -57,6 +58,7 @@ export default function ImportFromUrl({ onSuccess }: Props) {
           {loading ? '生成中...' : 'レシピを生成'}
         </Button>
       </form>
+      {loading && <RobotLoading label="レシピを生成しています" />}
       {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
     </div>
   )
