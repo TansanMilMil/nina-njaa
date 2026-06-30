@@ -230,6 +230,20 @@ export async function uploadRecipeImage(id: number, file: File): Promise<{ image
   return res.json()
 }
 
+export interface SuggestResult {
+  comment: string
+  recipes: Recipe[]
+}
+
+export async function suggestRecipes(query: string): Promise<SuggestResult> {
+  const res = await authFetch(`${BASE}/suggest`, jsonInit('POST', { query }))
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}))
+    throw new Error(d.detail ?? '提案の取得に失敗しました')
+  }
+  return res.json()
+}
+
 export async function deleteRecipeImage(id: number): Promise<void> {
   const res = await fetch(`/api/recipes/${id}/image`, { method: 'DELETE' })
   if (res.status === 401) { window.dispatchEvent(new Event('unauthorized')); throw new Error('unauthorized') }

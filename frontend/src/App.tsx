@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed } from 'lucide-react'
+import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed, Sparkles } from 'lucide-react'
 import SearchPage from './pages/SearchPage'
 import RecipePage from './pages/RecipePage'
 import BookmarksPage from './pages/BookmarksPage'
 import CookedLogsPage from './pages/CookedLogsPage'
 import HistoryPage from './pages/HistoryPage'
+import SuggestPage from './pages/SuggestPage'
 import LoginPage from './LoginPage'
 import ImportFromUrl from './components/ImportFromUrl'
 import { Button } from '@/components/ui/button'
@@ -103,6 +104,11 @@ export default function App() {
             >
               <PlusCircle className="h-5 w-5" />
             </Button>
+            <Button size="icon" variant="ghost" asChild aria-label="おすすめ">
+              <Link to="/suggest">
+                <Sparkles className="h-5 w-5" />
+              </Link>
+            </Button>
             <Button size="icon" variant="ghost" asChild aria-label="ブックマーク">
               <Link to="/bookmarks">
                 <Bookmark className="h-5 w-5" />
@@ -157,6 +163,7 @@ export default function App() {
               <Route path="/bookmarks" element={<BookmarksPage />} />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/cooked-logs" element={<CookedLogsPage />} />
+              <Route path="/suggest" element={<SuggestPage />} />
             </Routes>
           </div>
         </main>
