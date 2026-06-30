@@ -3,10 +3,9 @@ import { useSearchParams } from 'react-router-dom'
 import SearchBar from '../components/SearchBar'
 import RecipeCard from '../components/RecipeCard'
 import { RecipeCardSkeleton } from '../components/Skeleton'
-import { searchRecipes, getIngredientSuggestions, getRecipesByIds } from '../api'
+import { searchRecipes, getIngredientSuggestions, getRecentViewedRecipes } from '../api'
 import type { Recipe } from '../api'
 import { useBookmarks } from '../hooks/useBookmarks'
-import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ChevronUp } from 'lucide-react'
@@ -17,10 +16,9 @@ export default function SearchPage() {
   const [results, setResults] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
-  const { bookmarks, isBookmarked } = useBookmarks()
-  const { ingredientBookmarks } = useIngredientBookmarks()
-  const [bookmarkRecipes, setBookmarkRecipes] = useState<Recipe[]>([])
-  const [loadingBookmarks, setLoadingBookmarks] = useState(false)
+  const { isBookmarked } = useBookmarks()
+  const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([])
+  const [loadingRecent, setLoadingRecent] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
 
   useEffect(() => {
@@ -28,16 +26,12 @@ export default function SearchPage() {
   }, [])
 
   useEffect(() => {
-    if (bookmarks.length === 0) {
-      setBookmarkRecipes([])
-      return
-    }
-    setLoadingBookmarks(true)
-    getRecipesByIds(bookmarks).then(data => {
-      setBookmarkRecipes(data)
-      setLoadingBookmarks(false)
-    })
-  }, [bookmarks])
+    setLoadingRecent(true)
+    getRecentViewedRecipes().then(data => {
+      setRecentRecipes(data)
+      setLoadingRecent(false)
+    }).catch(() => setLoadingRecent(false))
+  }, [])
 
   const handleChange = (value: string) => {
     if (value) {
@@ -75,7 +69,7 @@ export default function SearchPage() {
 
   const scrollToTop = () => document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' })
 
-  const showBookmarks = q === ''
+  const showRecent = q === ''
 
   return (
     <>
@@ -97,38 +91,20 @@ export default function SearchPage() {
             </div>
           )}
         </div>
-        {showBookmarks ? (
-          <div className="flex flex-col gap-4">
-            {ingredientBookmarks.length > 0 && (
-              <div>
-                <h2 className="mb-2 text-lg font-semibold">ブックマーク済み食材</h2>
-                <div className="flex flex-wrap gap-1.5">
-                  {ingredientBookmarks.map(name => (
-                    <Badge
-                      key={name}
-                      variant="outline"
-                      onClick={() => handleChange(name)}
-                      className="cursor-pointer gap-1 rounded-full border-primary bg-accent/40"
-                    >
-                      <span className="text-primary">★</span> {name}
-                    </Badge>
-                  ))}
-                </div>
+        {showRecent ? (
+          <div className="flex flex-col">
+            <h2 className="mb-3 text-lg font-semibold">最近みたレシピ</h2>
+            {loadingRecent ? (
+              <div className="flex flex-col gap-3">
+                {Array.from({ length: 3 }, (_, i) => <RecipeCardSkeleton key={i} />)}
+              </div>
+            ) : recentRecipes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">まだレシピを閲覧していません</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {recentRecipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked={isBookmarked(r.id)} />)}
               </div>
             )}
-            <div className="flex flex-col">
-              <h2 className="mb-3 text-lg font-semibold">ブックマーク済みレシピ</h2>
-              {bookmarks.length === 0 ? (
-                <p className="text-sm text-muted-foreground">レシピのブックマークはまだありません</p>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {loadingBookmarks
-                    ? Array.from({ length: bookmarks.length }, (_, i) => <RecipeCardSkeleton key={i} />)
-                    : bookmarkRecipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked />)
-                  }
-                </div>
-              )}
-            </div>
           </div>
         ) : (
           <div className="flex flex-col">
