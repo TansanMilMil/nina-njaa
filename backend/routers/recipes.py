@@ -87,6 +87,11 @@ def create_recipe_from_url(
     return repo.create(recipe_data, created_by=username)
 
 
+@router.post("/api/recipes", response_model=RecipeDetail, status_code=201)
+def create_recipe(body: RecipeCreate, username: str = Depends(get_current_username)):
+    return repo.create(body, created_by=username)
+
+
 @router.get("/api/recipes/{id}", response_model=RecipeDetail)
 def get_recipe(id: int):
     recipe = repo.get_by_id(id)

@@ -13,7 +13,7 @@ _SCHEMA_STATEMENTS = (
     CREATE TABLE IF NOT EXISTS recipes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        source_url TEXT UNIQUE NOT NULL,
+        source_url TEXT UNIQUE,
         servings INTEGER,
         scraped_at TEXT NOT NULL,
         image_path TEXT,
@@ -125,6 +125,37 @@ class SQLiteRecipeRepository(
                     con.execute(migration)
                 except sqlite3.OperationalError:
                     pass
+            self._migrate_source_url_nullable(con)
+
+    def _migrate_source_url_nullable(self, con: sqlite3.Connection) -> None:
+        row = con.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='recipes'"
+        ).fetchone()
+        if row is None:
+            return
+        schema_sql: str = row["sql"]
+        col_match = next(
+            (line for line in schema_sql.splitlines() if "source_url" in line),
+            None,
+        )
+        if col_match is None or "NOT NULL" not in col_match:
+            return
+        con.execute("PRAGMA foreign_keys = OFF")
+        con.execute("""
+            CREATE TABLE recipes_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                source_url TEXT UNIQUE,
+                servings INTEGER,
+                scraped_at TEXT NOT NULL,
+                image_path TEXT,
+                username TEXT
+            )
+        """)
+        con.execute("INSERT INTO recipes_new SELECT id, name, source_url, servings, scraped_at, image_path, username FROM recipes")
+        con.execute("DROP TABLE recipes")
+        con.execute("ALTER TABLE recipes_new RENAME TO recipes")
+        con.execute("PRAGMA foreign_keys = ON")
 
     def set_image_path(self, recipe_id: int, image_path: str | None) -> None:
         with self._connect() as con:

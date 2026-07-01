@@ -51,7 +51,7 @@ class StepCreate(BaseModel):
 
 class RecipeCreate(BaseModel):
     name: str
-    source_url: str
+    source_url: str | None = None
     servings: int | None = None
     ingredients: list[IngredientCreate] = []
     steps: list[StepCreate] = []

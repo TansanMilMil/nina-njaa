@@ -123,6 +123,30 @@ export interface RecipeUpdatePayload {
   }[]
 }
 
+export interface RecipeCreatePayload {
+  name: string
+  source_url: string | null
+  servings: number | null
+  ingredients: {
+    group_name: string | null
+    name: string
+    quantity: string | null
+    unit: string | null
+    note: string | null
+    sort_order?: number | null
+  }[]
+  steps: {
+    step_number: number
+    description: string
+  }[]
+}
+
+export async function createRecipe(data: RecipeCreatePayload): Promise<RecipeDetail> {
+  const res = await authFetch(`${BASE}/recipes`, jsonInit('POST', data))
+  assertOk(res, '登録に失敗しました')
+  return res.json()
+}
+
 export async function updateRecipe(id: number, data: RecipeUpdatePayload): Promise<RecipeDetail> {
   const res = await authFetch(`${BASE}/recipes/${id}`, jsonInit('PUT', data))
   assertOk(res, '更新に失敗しました')

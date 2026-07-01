@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed, Sparkles, LogIn } from 'lucide-react'
+import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed, Sparkles, LogIn, FilePen } from 'lucide-react'
 import SearchPage from './pages/SearchPage'
 import RecipePage from './pages/RecipePage'
 import BookmarksPage from './pages/BookmarksPage'
@@ -8,6 +8,7 @@ import CookedLogsPage from './pages/CookedLogsPage'
 import CookedLogDetailPage from './pages/CookedLogDetailPage'
 import HistoryPage from './pages/HistoryPage'
 import SuggestPage from './pages/SuggestPage'
+import AddRecipePage from './pages/AddRecipePage'
 import LoginPage from './LoginPage'
 import ImportFromUrl from './components/ImportFromUrl'
 import { Button } from '@/components/ui/button'
@@ -138,9 +139,18 @@ export default function App() {
                     {menuOpen && (
                       <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border bg-card shadow-lg z-10">
                         <Link
-                          to="/history"
+                          to="/add-recipe"
                           onClick={() => setMenuOpen(false)}
                           className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted rounded-t-lg"
+                        >
+                          <FilePen className="h-4 w-4" />
+                          レシピを手動追加
+                        </Link>
+                        <div className="border-t" />
+                        <Link
+                          to="/history"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted"
                         >
                           <Clock className="h-4 w-4" />
                           最近見たもの
@@ -189,6 +199,7 @@ export default function App() {
                 <Route path="/cooked-logs" element={<CookedLogsPage />} />
                 <Route path="/cooked-logs/:recipeId" element={<CookedLogDetailPage />} />
                 <Route path="/suggest" element={<SuggestPage />} />
+                <Route path="/add-recipe" element={<AddRecipePage />} />
               </Routes>
             </div>
           </main>
