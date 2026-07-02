@@ -71,8 +71,14 @@ class CookedLogEntry(BaseModel):
     image_path: str | None = None
     count: int
     last_cooked_at: str
+    latest_memo: str | None = None
 
 
 class CookedLogRawEntry(BaseModel):
     id: int
     cooked_at: str
+    memo: str | None = None
+
+
+class CookedLogCreate(BaseModel):
+    memo: str | None = None

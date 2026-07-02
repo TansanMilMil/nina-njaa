@@ -10,12 +10,14 @@ class _ConnectionProvider(Protocol):
 
 
 class _CookedLogMixin:
-    def add_cooked_log(self: _ConnectionProvider, username: str, recipe_id: int) -> None:
+    def add_cooked_log(
+        self: _ConnectionProvider, username: str, recipe_id: int, memo: str | None = None
+    ) -> None:
         cooked_at = datetime.now(timezone.utc).isoformat()
         with self._connect() as con:
             con.execute(
-                "INSERT INTO cooked_logs (username, recipe_id, cooked_at) VALUES (?, ?, ?)",
-                (username, recipe_id, cooked_at),
+                "INSERT INTO cooked_logs (username, recipe_id, cooked_at, memo) VALUES (?, ?, ?, ?)",
+                (username, recipe_id, cooked_at, memo),
             )
 
     def get_cooked_log_for_recipe(
@@ -25,7 +27,8 @@ class _CookedLogMixin:
             row = con.execute(
                 """
                 SELECT cl.recipe_id, r.name AS recipe_name, r.image_path,
-                       COUNT(*) AS count, MAX(cl.cooked_at) AS last_cooked_at
+                       COUNT(*) AS count, MAX(cl.cooked_at) AS last_cooked_at,
+                       cl.memo AS latest_memo
                 FROM cooked_logs cl
                 LEFT JOIN recipes r ON cl.recipe_id = r.id
                 WHERE cl.username = ? AND cl.recipe_id = ?
@@ -41,6 +44,7 @@ class _CookedLogMixin:
             image_path=row["image_path"],
             count=row["count"],
             last_cooked_at=row["last_cooked_at"],
+            latest_memo=row["latest_memo"],
         )
 
     def get_cooked_logs(self: _ConnectionProvider, username: str) -> list[CookedLogEntry]:
@@ -48,7 +52,8 @@ class _CookedLogMixin:
             rows = con.execute(
                 """
                 SELECT cl.recipe_id, r.name AS recipe_name, r.image_path,
-                       COUNT(*) AS count, MAX(cl.cooked_at) AS last_cooked_at
+                       COUNT(*) AS count, MAX(cl.cooked_at) AS last_cooked_at,
+                       cl.memo AS latest_memo
                 FROM cooked_logs cl
                 LEFT JOIN recipes r ON cl.recipe_id = r.id
                 WHERE cl.username = ?
@@ -64,6 +69,7 @@ class _CookedLogMixin:
                 image_path=row["image_path"],
                 count=row["count"],
                 last_cooked_at=row["last_cooked_at"],
+                latest_memo=row["latest_memo"],
             )
             for row in rows
         ]
@@ -74,7 +80,7 @@ class _CookedLogMixin:
         with self._connect() as con:
             rows = con.execute(
                 """
-                SELECT rowid AS id, cooked_at
+                SELECT rowid AS id, cooked_at, memo
                 FROM cooked_logs
                 WHERE username = ? AND recipe_id = ?
                 ORDER BY cooked_at DESC
@@ -82,7 +88,7 @@ class _CookedLogMixin:
                 (username, recipe_id),
             ).fetchall()
         return [
-            CookedLogRawEntry(id=row["id"], cooked_at=row["cooked_at"]) for row in rows
+            CookedLogRawEntry(id=row["id"], cooked_at=row["cooked_at"], memo=row["memo"]) for row in rows
         ]
 
     def delete_cooked_log_entry(
@@ -95,5 +101,19 @@ class _CookedLogMixin:
                 WHERE rowid = ? AND username = ? AND recipe_id = ?
                 """,
                 (entry_id, username, recipe_id),
+            )
+        return cur.rowcount > 0
+
+    def update_cooked_log_entry(
+        self: _ConnectionProvider, username: str, recipe_id: int, entry_id: int, memo: str | None
+    ) -> bool:
+        with self._connect() as con:
+            cur = con.execute(
+                """
+                UPDATE cooked_logs
+                SET memo = ?
+                WHERE rowid = ? AND username = ? AND recipe_id = ?
+                """,
+                (memo, entry_id, username, recipe_id),
             )
         return cur.rowcount > 0

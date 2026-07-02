@@ -74,6 +74,8 @@ export default function RecipePage() {
   const navigate = useNavigate()
   const [cookLogging, setCookLogging] = useState(false)
   const [cookedLog, setCookedLog] = useState<CookedLogEntry | null>(null)
+  const [isCookLogModalOpen, setIsCookLogModalOpen] = useState(false)
+  const [cookLogMemo, setCookLogMemo] = useState('')
   const [imageUploading, setImageUploading] = useState(false)
   const { isBookmarked, toggle } = useBookmarks()
   const { isIngredientBookmarked, toggleIngredient } = useIngredientBookmarks()
@@ -114,12 +116,19 @@ export default function RecipePage() {
     setEditState(null)
   }
 
-  async function handleCookLog() {
+  function handleCookLogClick() {
+    setIsCookLogModalOpen(true)
+    setCookLogMemo('')
+  }
+
+  async function submitCookLog() {
     if (!id) return
     setCookLogging(true)
     try {
-      await addCookedLog(Number(id))
+      await addCookedLog(Number(id), cookLogMemo)
       toast.success('料理記録を追加しました！')
+      setIsCookLogModalOpen(false)
+      setCookLogMemo('')
       getCookedLogForRecipe(Number(id)).then(log => setCookedLog(log)).catch(() => {})
     } catch {
       toast.error('記録に失敗しました')
@@ -396,28 +405,64 @@ export default function RecipePage() {
       </div>
 
       {currentUsername && (
-        <div className="flex flex-wrap items-center gap-3">
-          <BookmarkButton
-            isBookmarked={isBookmarked(recipe.id)}
-            onToggle={() => toggle(recipe.id)}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCookLog}
-            disabled={cookLogging}
-          >
-            {cookLogging ? '記録中...' : '作った！'}
-          </Button>
-          {cookedLog && (
-            <Link
-              to={`/cooked-logs/${recipe.id}`}
-              className="text-sm text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <BookmarkButton
+              isBookmarked={isBookmarked(recipe.id)}
+              onToggle={() => toggle(recipe.id)}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCookLogClick}
+              disabled={cookLogging}
             >
-              {cookedLog.count}回作った・最終:{' '}
-              {new Date(cookedLog.last_cooked_at).toLocaleDateString('ja-JP')}
-            </Link>
+              {cookLogging ? '記録中...' : '作った！'}
+            </Button>
+            {cookedLog && (
+              <Link
+                to={`/cooked-logs/${recipe.id}`}
+                className="text-sm text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
+              >
+                {cookedLog.count}回作った・最終:{' '}
+                {new Date(cookedLog.last_cooked_at).toLocaleDateString('ja-JP')}
+              </Link>
+            )}
+          </div>
+          {cookedLog?.latest_memo && (
+            <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground whitespace-pre-wrap">
+              <span className="mb-1 block text-xs font-semibold">直近のメモ:</span>
+              {cookedLog.latest_memo}
+            </div>
           )}
+        </div>
+      )}
+
+      {isCookLogModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
+            <h2 className="mb-4 text-xl font-bold">料理記録の追加</h2>
+            <textarea
+              className="mb-4 w-full rounded-md border bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              rows={4}
+              placeholder="メモ（任意）&#13;&#10;例：塩を少し減らしてちょうどよかった"
+              value={cookLogMemo}
+              onChange={e => setCookLogMemo(e.target.value)}
+              disabled={cookLogging}
+            />
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setIsCookLogModalOpen(false)}
+                disabled={cookLogging}
+              >
+                キャンセル
+              </Button>
+              <Button onClick={submitCookLog} disabled={cookLogging}>
+                {cookLogging ? '記録中...' : '記録する'}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

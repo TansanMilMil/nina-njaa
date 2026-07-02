@@ -226,14 +226,15 @@ export async function removeIngredientBookmark(name: string): Promise<void> {
 
 export interface CookedLogEntry {
   recipe_id: number
-  recipe_name: string | null
+  recipe_name?: string | null
   image_path?: string | null
   count: number
   last_cooked_at: string
+  latest_memo?: string | null
 }
 
-export async function addCookedLog(recipe_id: number): Promise<void> {
-  const res = await authFetch(`${BASE}/cooked-logs/${recipe_id}`, { method: 'POST' })
+export async function addCookedLog(recipe_id: number, memo?: string): Promise<void> {
+  const res = await authFetch(`${BASE}/cooked-logs/${recipe_id}`, jsonInit('POST', { memo }))
   assertOk(res, '記録に失敗しました')
 }
 
@@ -279,6 +280,7 @@ export async function deleteRecipeImage(id: number): Promise<void> {
 export interface CookedLogRawEntry {
   id: number
   cooked_at: string
+  memo?: string | null
 }
 
 export async function getCookedLogEntries(recipe_id: number): Promise<CookedLogRawEntry[]> {
@@ -288,4 +290,9 @@ export async function getCookedLogEntries(recipe_id: number): Promise<CookedLogR
 export async function deleteCookedLogEntry(recipe_id: number, entry_id: number): Promise<void> {
   const res = await authFetch(`${BASE}/cooked-logs/${recipe_id}/entries/${entry_id}`, { method: 'DELETE' })
   assertOk(res, '削除に失敗しました')
+}
+
+export async function updateCookedLogEntry(recipe_id: number, entry_id: number, memo?: string): Promise<void> {
+  const res = await authFetch(`${BASE}/cooked-logs/${recipe_id}/entries/${entry_id}`, jsonInit('PUT', { memo }))
+  assertOk(res, '更新に失敗しました')
 }

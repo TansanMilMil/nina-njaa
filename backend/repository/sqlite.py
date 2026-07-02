@@ -88,7 +88,8 @@ _SCHEMA_STATEMENTS = (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL,
         recipe_id INTEGER NOT NULL,
-        cooked_at TEXT NOT NULL
+        cooked_at TEXT NOT NULL,
+        memo TEXT
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_cl_username ON cooked_logs(username)",
@@ -120,6 +121,7 @@ class SQLiteRecipeRepository(
             for migration in (
                 "ALTER TABLE recipes ADD COLUMN image_path TEXT",
                 "ALTER TABLE recipes ADD COLUMN username TEXT",
+                "ALTER TABLE cooked_logs ADD COLUMN memo TEXT",
             ):
                 try:
                     con.execute(migration)
