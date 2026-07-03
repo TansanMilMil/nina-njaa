@@ -3,7 +3,7 @@ import os
 import pathlib
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
-from PIL import Image
+from PIL import Image, ImageOps
 
 from db import repo
 from routers.auth import get_current_username
@@ -45,6 +45,8 @@ def upload_recipe_image(
         img.load()
     except Exception:
         raise HTTPException(status_code=422, detail="画像の読み込みに失敗しました")
+
+    img = ImageOps.exif_transpose(img)
 
     if img.mode == "RGBA":
         background = Image.new("RGB", img.size, (255, 255, 255))
