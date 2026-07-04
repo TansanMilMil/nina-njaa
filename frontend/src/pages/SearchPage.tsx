@@ -118,7 +118,7 @@ export default function SearchPage() {
             <div className="flex flex-col gap-3">
               {loading
                 ? Array.from({ length: 4 }, (_, i) => <RecipeCardSkeleton key={i} />)
-                : results.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} isBookmarked={isBookmarked(recipe.id)} />)
+                : results.map(recipe => <RecipeCard key={recipe.id} recipe={recipe} isBookmarked={isBookmarked(recipe.id)} cookedCount={cookedCountMap.get(recipe.id) ?? 0} />)
               }
             </div>
           </div>
