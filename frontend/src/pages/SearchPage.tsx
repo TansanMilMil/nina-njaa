@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { UserContext } from '../contexts/UserContext'
 import SearchBar from '../components/SearchBar'
 import RecipeCard from '../components/RecipeCard'
 import { RecipeCardSkeleton } from '../components/Skeleton'
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { ChevronUp } from 'lucide-react'
 
 export default function SearchPage() {
+  const currentUsername = useContext(UserContext)
   const [searchParams, setSearchParams] = useSearchParams()
   const q = searchParams.get('q') ?? ''
   const [results, setResults] = useState<Recipe[]>([])
@@ -23,17 +25,26 @@ export default function SearchPage() {
   const [showScrollTop, setShowScrollTop] = useState(false)
 
   useEffect(() => {
-    getIngredientSuggestions().then(setSuggestions).catch(() => {})
-  }, [])
+    if (currentUsername) {
+      getIngredientSuggestions().then(setSuggestions).catch(() => {})
+    } else {
+      setSuggestions([])
+    }
+  }, [currentUsername])
 
   useEffect(() => {
-    setLoadingRecent(true)
-    Promise.all([getRecentViewedRecipes(), getCookedLogs()]).then(([recipes, logs]) => {
-      setRecentRecipes(recipes)
-      setCookedCountMap(new Map(logs.map(l => [l.recipe_id, l.count])))
-      setLoadingRecent(false)
-    }).catch(() => setLoadingRecent(false))
-  }, [])
+    if (currentUsername) {
+      setLoadingRecent(true)
+      Promise.all([getRecentViewedRecipes(), getCookedLogs()]).then(([recipes, logs]) => {
+        setRecentRecipes(recipes)
+        setCookedCountMap(new Map(logs.map(l => [l.recipe_id, l.count])))
+        setLoadingRecent(false)
+      }).catch(() => setLoadingRecent(false))
+    } else {
+      setRecentRecipes([])
+      setCookedCountMap(new Map())
+    }
+  }, [currentUsername])
 
   const handleChange = (value: string) => {
     if (value) {

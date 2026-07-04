@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { Link } from 'react-router-dom'
+import { UserContext } from '../contexts/UserContext'
 import { X } from 'lucide-react'
 import RecipeCard from '../components/RecipeCard'
 import { RecipeCardSkeleton } from '../components/Skeleton'
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils'
 type Tab = 'recipes' | 'ingredients'
 
 export default function BookmarksPage() {
+  const currentUsername = useContext(UserContext)
   const { bookmarks, toggle } = useBookmarks()
   const { ingredientBookmarks, toggleIngredient } = useIngredientBookmarks()
   const [recipes, setRecipes] = useState<Recipe[]>([])
@@ -32,10 +34,14 @@ export default function BookmarksPage() {
   }, [bookmarks])
 
   useEffect(() => {
-    getCookedLogs().then(logs => {
-      setCookedCountMap(new Map(logs.map(l => [l.recipe_id, l.count])))
-    }).catch(() => {})
-  }, [])
+    if (currentUsername) {
+      getCookedLogs().then(logs => {
+        setCookedCountMap(new Map(logs.map(l => [l.recipe_id, l.count])))
+      }).catch(() => {})
+    } else {
+      setCookedCountMap(new Map())
+    }
+  }, [currentUsername])
 
   const tabClass = (active: boolean) =>
     cn(

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { Link } from 'react-router-dom'
+import { UserContext } from '../contexts/UserContext'
 import RecipeCard from '../components/RecipeCard'
 import { RecipeCardSkeleton } from '../components/Skeleton'
 import { useBookmarks } from '../hooks/useBookmarks'
@@ -10,6 +11,7 @@ import { cn } from '@/lib/utils'
 type Tab = 'recipes' | 'ingredients'
 
 export default function HistoryPage() {
+  const currentUsername = useContext(UserContext)
   const { bookmarks } = useBookmarks()
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [ingredients, setIngredients] = useState<string[]>([])
@@ -19,18 +21,26 @@ export default function HistoryPage() {
   const [tab, setTab] = useState<Tab>('recipes')
 
   useEffect(() => {
-    getRecentViewedRecipes().then(data => {
-      setRecipes(data)
+    if (currentUsername) {
+      getRecentViewedRecipes().then(data => {
+        setRecipes(data)
+        setLoadingRecipes(false)
+      })
+      getRecentViewedIngredients().then(data => {
+        setIngredients(data)
+        setLoadingIngredients(false)
+      })
+      getCookedLogs().then(logs => {
+        setCookedCountMap(new Map(logs.map(l => [l.recipe_id, l.count])))
+      }).catch(() => {})
+    } else {
+      setRecipes([])
+      setIngredients([])
+      setCookedCountMap(new Map())
       setLoadingRecipes(false)
-    })
-    getRecentViewedIngredients().then(data => {
-      setIngredients(data)
       setLoadingIngredients(false)
-    })
-    getCookedLogs().then(logs => {
-      setCookedCountMap(new Map(logs.map(l => [l.recipe_id, l.count])))
-    }).catch(() => {})
-  }, [])
+    }
+  }, [currentUsername])
 
   const tabClass = (active: boolean) =>
     cn(

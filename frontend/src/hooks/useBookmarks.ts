@@ -1,12 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { getRecipeBookmarks, addRecipeBookmark, removeRecipeBookmark } from '../api'
+import { UserContext } from '../contexts/UserContext'
 
 export function useBookmarks() {
+  const currentUsername = useContext(UserContext)
   const [bookmarks, setBookmarks] = useState<number[]>([])
 
   useEffect(() => {
-    getRecipeBookmarks().then(setBookmarks).catch(() => {})
-  }, [])
+    if (currentUsername) {
+      getRecipeBookmarks().then(setBookmarks).catch(() => {})
+    } else {
+      setBookmarks([])
+    }
+  }, [currentUsername])
 
   const isBookmarked = (id: number) => bookmarks.includes(id)
 

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { Link } from 'react-router-dom'
+import { UserContext } from '../contexts/UserContext'
 import { getCookedLogs } from '../api'
 import type { CookedLogEntry } from '../api'
 
@@ -9,15 +10,21 @@ function formatDate(isoString: string): string {
 }
 
 export default function CookedLogsPage() {
+  const currentUsername = useContext(UserContext)
   const [logs, setLogs] = useState<CookedLogEntry[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getCookedLogs().then(data => {
-      setLogs(data)
+    if (currentUsername) {
+      getCookedLogs().then(data => {
+        setLogs(data)
+        setLoading(false)
+      })
+    } else {
+      setLogs([])
       setLoading(false)
-    })
-  }, [])
+    }
+  }, [currentUsername])
 
   return (
     <div className="flex flex-col gap-4">

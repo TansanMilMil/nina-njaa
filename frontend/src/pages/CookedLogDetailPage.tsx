@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { UserContext } from '../contexts/UserContext'
 import { ArrowLeft, Trash2, Edit2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -17,6 +18,7 @@ function formatDateTime(isoString: string): string {
 }
 
 export default function CookedLogDetailPage() {
+  const currentUsername = useContext(UserContext)
   const { recipeId } = useParams<{ recipeId: string }>()
   const navigate = useNavigate()
   const recipe_id = parseInt(recipeId ?? '', 10)
@@ -28,15 +30,21 @@ export default function CookedLogDetailPage() {
   const [editMemo, setEditMemo] = useState('')
 
   useEffect(() => {
-    Promise.all([
-      getCookedLogEntries(recipe_id),
-      getCookedLogForRecipe(recipe_id),
-    ]).then(([entryList, entrySummary]) => {
-      setEntries(entryList)
-      setSummary(entrySummary)
+    if (currentUsername) {
+      Promise.all([
+        getCookedLogEntries(recipe_id),
+        getCookedLogForRecipe(recipe_id),
+      ]).then(([entryList, entrySummary]) => {
+        setEntries(entryList)
+        setSummary(entrySummary)
+        setLoading(false)
+      })
+    } else {
+      setEntries([])
+      setSummary(null)
       setLoading(false)
-    })
-  }, [recipe_id])
+    }
+  }, [recipe_id, currentUsername])
 
   const handleDelete = async (entryId: number) => {
     const prev = entries
