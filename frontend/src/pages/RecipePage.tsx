@@ -469,8 +469,6 @@ export default function RecipePage() {
       <p>
         <a
           href={recipe.source_url}
-          target="_blank"
-          rel="noopener noreferrer"
           className="text-primary underline-offset-4 hover:underline"
         >
           元レシピを見る

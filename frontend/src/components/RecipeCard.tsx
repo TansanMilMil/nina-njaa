@@ -14,8 +14,6 @@ export default function RecipeCard({ recipe, isBookmarked, onBookmarkToggle, coo
   return (
     <Link
       to={`/recipe/${recipe.id}`}
-      target="_blank"
-      rel="noopener noreferrer"
       className={cn(
         'block rounded-lg border bg-card text-card-foreground shadow-sm transition-colors hover:bg-accent',
         isBookmarked && 'border-primary bg-accent/40'
