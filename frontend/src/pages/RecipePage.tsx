@@ -13,6 +13,35 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useCurrentUser } from '../contexts/UserContext'
 
+const NUMBER_TOKEN_PATTERN = /(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?)/g
+
+function parseNumberToken(token: string): number | null {
+  const mixed = token.match(/^(\d+)\s+(\d+)\/(\d+)$/)
+  if (mixed) {
+    const [, whole, num, den] = mixed
+    return Number(den) === 0 ? null : Number(whole) + Number(num) / Number(den)
+  }
+  const fraction = token.match(/^(\d+)\/(\d+)$/)
+  if (fraction) {
+    const [, num, den] = fraction
+    return Number(den) === 0 ? null : Number(num) / Number(den)
+  }
+  if (/^\d+(?:\.\d+)?$/.test(token)) return Number(token)
+  return null
+}
+
+function formatScaledNumber(value: number): string {
+  return String(Math.round(value * 100) / 100)
+}
+
+function scaleQuantity(quantity: string | null, multiplier: number): string {
+  if (!quantity || multiplier === 1) return quantity ?? ''
+  return quantity.replace(NUMBER_TOKEN_PATTERN, match => {
+    const value = parseNumberToken(match)
+    return value === null ? match : formatScaledNumber(value * multiplier)
+  })
+}
+
 function groupIngredients(ingredients: Ingredient[]): [string | null, Ingredient[]][] {
   const groups: [string | null, Ingredient[]][] = []
   for (const ing of ingredients) {
@@ -77,6 +106,8 @@ export default function RecipePage() {
   const [isCookLogModalOpen, setIsCookLogModalOpen] = useState(false)
   const [cookLogMemo, setCookLogMemo] = useState('')
   const [imageUploading, setImageUploading] = useState(false)
+  const [multiplier, setMultiplier] = useState(1)
+  const [multiplierInput, setMultiplierInput] = useState('1')
   const { isBookmarked, toggle } = useBookmarks()
   const { isIngredientBookmarked, toggleIngredient } = useIngredientBookmarks()
   const currentUsername = useCurrentUser()
@@ -87,6 +118,8 @@ export default function RecipePage() {
     setRecipe(null)
     setError(false)
     setIsEditing(false)
+    setMultiplier(1)
+    setMultiplierInput('1')
     getRecipe(Number(id))
       .then(data => {
         if (!cancelled) {
@@ -208,6 +241,19 @@ export default function RecipePage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  function handleMultiplierInputChange(value: string) {
+    setMultiplierInput(value)
+    const parsed = Number(value)
+    if (value.trim() !== '' && Number.isFinite(parsed) && parsed > 0) {
+      setMultiplier(parsed)
+    }
+  }
+
+  function applyMultiplierPreset(value: number) {
+    setMultiplier(value)
+    setMultiplierInput(String(value))
   }
 
   function updateField<K extends keyof EditState>(key: K, value: EditState[K]) {
@@ -479,6 +525,29 @@ export default function RecipePage() {
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">材料</h2>
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">分量</span>
+          {[0.5, 1, 2, 3].map(v => (
+            <Button
+              key={v}
+              type="button"
+              variant={multiplier === v ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => applyMultiplierPreset(v)}
+            >
+              {v}倍
+            </Button>
+          ))}
+          <Input
+            type="number"
+            step="0.1"
+            min="0.1"
+            value={multiplierInput}
+            onChange={e => handleMultiplierInputChange(e.target.value)}
+            className="w-20"
+          />
+          <span className="text-sm text-muted-foreground">倍</span>
+        </div>
         {grouped.map(([groupName, items], gi) => (
           <div key={gi} className="mb-3">
             {groupName && <h3 className="my-2 font-semibold">{groupName}</h3>}
@@ -510,7 +579,7 @@ export default function RecipePage() {
                     {(ing.quantity || ing.unit) && (
                       <>
                         {' '}
-                        {ing.quantity ?? ''}
+                        {scaleQuantity(ing.quantity, multiplier)}
                         {ing.unit ?? ''}
                       </>
                     )}
