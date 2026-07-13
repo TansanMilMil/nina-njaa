@@ -27,10 +27,20 @@ tasks:
       - .venv/bin/uvicorn main:app --reload --port 8001
 
   install:
+    desc: "フロントエンド・バックエンドの依存パッケージをインストール"
+    deps: [install:frontend, install:backend]
+
+  install:frontend:
     desc: "フロントエンドの依存パッケージをインストール"
     dir: frontend
     cmds:
       - npm install
+
+  install:backend:
+    desc: "バックエンドの依存パッケージをインストール"
+    dir: backend
+    cmds:
+      - .venv/bin/pip install -r requirements.txt
 
   build:
     desc: "フロントエンドをビルド"
