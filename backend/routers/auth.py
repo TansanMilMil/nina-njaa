@@ -29,6 +29,29 @@ def create_access_token(username: str) -> str:
     return jwt.encode({"sub": username, "exp": expire}, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
+def set_auth_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        "auth_token",
+        token,
+        httponly=True,
+        samesite="strict",
+        secure=SECURE_COOKIE,
+        max_age=JWT_EXPIRE_DAYS * 24 * 3600,
+    )
+
+
+def refresh_auth_cookie(request: Request, response: Response) -> None:
+    """アクティブなユーザーのセッションが有効期限で切れないよう、有効なトークンを毎リクエスト延長する"""
+    token = request.cookies.get("auth_token")
+    if not token:
+        return
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    except JWTError:
+        return
+    set_auth_cookie(response, create_access_token(str(payload["sub"])))
+
+
 def get_current_username(request: Request) -> str:
     token = request.cookies.get("auth_token")
     if token:
@@ -66,15 +89,7 @@ def login(request: Request, body: LoginRequest, response: Response):
     pass_ok = secrets.compare_digest(body.password, BASIC_AUTH_PASS)
     if not (user_ok and pass_ok):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    token = create_access_token(body.username)
-    response.set_cookie(
-        "auth_token",
-        token,
-        httponly=True,
-        samesite="strict",
-        secure=SECURE_COOKIE,
-        max_age=JWT_EXPIRE_DAYS * 24 * 3600,
-    )
+    set_auth_cookie(response, create_access_token(body.username))
     return {"ok": True}
 
 

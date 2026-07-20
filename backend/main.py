@@ -9,6 +9,7 @@ from slowapi.util import get_remote_address
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from routers import auth, bookmarks, cooked_logs, history, image, recipes, suggest
+from routers.auth import refresh_auth_cookie
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -26,6 +27,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def sliding_session_middleware(request, call_next):
+    """アクティブなユーザーが操作を続けている限り、認証セッションを延長する"""
+    response = await call_next(request)
+    if "set-cookie" not in response.headers:
+        refresh_auth_cookie(request, response)
+    return response
+
 
 app.include_router(auth.router)
 app.include_router(recipes.router)
