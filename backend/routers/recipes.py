@@ -140,8 +140,10 @@ def delete_recipe(id: int, username: str = Depends(get_current_username)):
     if existing.username is not None and existing.username != username:
         raise HTTPException(status_code=403, detail="このレシピを削除する権限がありません")
     repo.delete(id)
-    image_path = UPLOADS_DIR / f"{id}.jpg"
-    try:
-        image_path.unlink()
-    except FileNotFoundError:
-        pass
+    # ファイル名にuuidが付与され{id}.jpg固定ではなくなったため、パスを推測構築せずDBの値を使う。
+    # (コミットe00c13a以前は{id}.jpg固定だったため、uuidなしの{id}.jpg形式のファイルも存在しうる)
+    if existing.image_path is not None:
+        try:
+            (UPLOADS_DIR / existing.image_path).unlink()
+        except FileNotFoundError:
+            pass

@@ -1,6 +1,7 @@
 import io
 import os
 import pathlib
+import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from PIL import Image, ImageOps
@@ -59,8 +60,17 @@ def upload_recipe_image(
         img.thumbnail((MAX_IMAGE_LONG_SIDE, MAX_IMAGE_LONG_SIDE))
 
     UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-    image_name = f"{id}.jpg"
+    old_image_path = recipe.image_path
+    image_name = f"{id}-{uuid.uuid4().hex[:8]}.jpg"
     img.save(UPLOADS_DIR / image_name, format="JPEG", quality=80)
+
+    # ファイル名にuuidを含めて画像ごとに変えているため、上書きでは古いファイルが残る。孤立させないよう明示的に削除する。
+    # (コミットe00c13a以前は{id}.jpg固定だったため、uuidなしの{id}.jpg形式のファイルも存在しうる)
+    if old_image_path is not None:
+        try:
+            (UPLOADS_DIR / old_image_path).unlink()
+        except FileNotFoundError:
+            pass
 
     repo.set_image_path(id, image_name)
     return {"image_path": image_name}
@@ -74,10 +84,12 @@ def delete_recipe_image(id: int, username: str = Depends(get_current_username)):
     if recipe.username is not None and recipe.username != username:
         raise HTTPException(status_code=403, detail="このレシピを編集する権限がありません")
 
-    image_path = UPLOADS_DIR / f"{id}.jpg"
-    try:
-        os.remove(image_path)
-    except FileNotFoundError:
-        pass
+    # ファイル名にuuidが付与され{id}.jpg固定ではなくなったため、パスを推測構築せずDBの値を使う。
+    # (コミットe00c13a以前は{id}.jpg固定だったため、uuidなしの{id}.jpg形式のファイルも存在しうる)
+    if recipe.image_path is not None:
+        try:
+            os.remove(UPLOADS_DIR / recipe.image_path)
+        except FileNotFoundError:
+            pass
 
     repo.set_image_path(id, None)
