@@ -47,10 +47,16 @@ class _CookedLogMixin:
             latest_memo=row["latest_memo"],
         )
 
-    def get_cooked_logs(self: _ConnectionProvider, username: str) -> list[CookedLogEntry]:
+    def get_cooked_logs(
+        self: _ConnectionProvider, username: str, sort: str = "last_cooked_at_desc"
+    ) -> list[CookedLogEntry]:
+        order_by = {
+            "count_desc": "COUNT(*) DESC",
+            "last_cooked_at_desc": "MAX(cl.cooked_at) DESC",
+        }.get(sort, "MAX(cl.cooked_at) DESC")
         with self._connect() as con:
             rows = con.execute(
-                """
+                f"""
                 SELECT cl.recipe_id, r.name AS recipe_name, r.image_path,
                        COUNT(*) AS count, MAX(cl.cooked_at) AS last_cooked_at,
                        cl.memo AS latest_memo
@@ -58,7 +64,7 @@ class _CookedLogMixin:
                 LEFT JOIN recipes r ON cl.recipe_id = r.id
                 WHERE cl.username = ?
                 GROUP BY cl.recipe_id
-                ORDER BY MAX(cl.cooked_at) DESC
+                ORDER BY {order_by}
                 """,
                 (username,),
             ).fetchall()

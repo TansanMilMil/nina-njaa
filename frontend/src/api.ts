@@ -238,8 +238,10 @@ export async function addCookedLog(recipe_id: number, memo?: string): Promise<vo
   assertOk(res, '記録に失敗しました')
 }
 
-export async function getCookedLogs(): Promise<CookedLogEntry[]> {
-  return fetchJsonOr<CookedLogEntry[]>('/cooked-logs', [])
+export type CookedLogSort = 'last_cooked_at_desc' | 'count_desc'
+
+export async function getCookedLogs(sort: CookedLogSort = 'last_cooked_at_desc'): Promise<CookedLogEntry[]> {
+  return fetchJsonOr<CookedLogEntry[]>(`/cooked-logs?sort=${sort}`, [])
 }
 
 export async function getCookedLogForRecipe(recipe_id: number): Promise<CookedLogEntry | null> {

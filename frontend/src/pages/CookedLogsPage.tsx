@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from 'react'
 import { Link } from 'react-router-dom'
 import { UserContext } from '../contexts/UserContext'
 import { getCookedLogs } from '../api'
-import type { CookedLogEntry } from '../api'
+import type { CookedLogEntry, CookedLogSort } from '../api'
 
 function formatDate(isoString: string): string {
   const d = new Date(isoString)
@@ -13,10 +13,12 @@ export default function CookedLogsPage() {
   const currentUsername = useContext(UserContext)
   const [logs, setLogs] = useState<CookedLogEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [sortOrder, setSortOrder] = useState<CookedLogSort>('last_cooked_at_desc')
 
   useEffect(() => {
     if (currentUsername) {
-      getCookedLogs().then(data => {
+      setLoading(true)
+      getCookedLogs(sortOrder).then(data => {
         setLogs(data)
         setLoading(false)
       })
@@ -24,11 +26,23 @@ export default function CookedLogsPage() {
       setLogs([])
       setLoading(false)
     }
-  }, [currentUsername])
+  }, [currentUsername, sortOrder])
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold">料理記録</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">料理記録</h1>
+        {!loading && logs.length > 0 && (
+          <select
+            value={sortOrder}
+            onChange={e => setSortOrder(e.target.value as CookedLogSort)}
+            className="rounded-md border bg-card px-2 py-1 text-sm text-card-foreground"
+          >
+            <option value="last_cooked_at_desc">最終調理日が新しい順</option>
+            <option value="count_desc">調理回数が多い順</option>
+          </select>
+        )}
+      </div>
 
       {loading ? (
         <div className="flex flex-col gap-3">
