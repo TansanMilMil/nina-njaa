@@ -1,7 +1,7 @@
 import os
 import sqlite3
 
-from kana import to_hiragana
+from kana import to_hiragana, to_reading
 from repository._bookmark import _BookmarkMixin
 from repository._cooked_log import _CookedLogMixin
 from repository._recipe_crud import _RecipeCRUDMixin
@@ -18,7 +18,8 @@ _SCHEMA_STATEMENTS = (
         servings INTEGER,
         scraped_at TEXT NOT NULL,
         image_path TEXT,
-        username TEXT
+        username TEXT,
+        name_reading TEXT
     )
     """,
     """
@@ -30,7 +31,8 @@ _SCHEMA_STATEMENTS = (
         name TEXT NOT NULL,
         quantity TEXT,
         unit TEXT,
-        note TEXT
+        note TEXT,
+        name_reading TEXT
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_ingredients_recipe_id ON ingredients(recipe_id)",
@@ -124,12 +126,27 @@ class SQLiteRecipeRepository(
                 "ALTER TABLE recipes ADD COLUMN image_path TEXT",
                 "ALTER TABLE recipes ADD COLUMN username TEXT",
                 "ALTER TABLE cooked_logs ADD COLUMN memo TEXT",
+                "ALTER TABLE recipes ADD COLUMN name_reading TEXT",
+                "ALTER TABLE ingredients ADD COLUMN name_reading TEXT",
             ):
                 try:
                     con.execute(migration)
                 except sqlite3.OperationalError:
                     pass
             self._migrate_source_url_nullable(con)
+            self._backfill_readings(con)
+
+    def _backfill_readings(self, con: sqlite3.Connection) -> None:
+        for row in con.execute("SELECT id, name FROM recipes WHERE name_reading IS NULL").fetchall():
+            con.execute(
+                "UPDATE recipes SET name_reading = ? WHERE id = ?",
+                (to_reading(row["name"]), row["id"]),
+            )
+        for row in con.execute("SELECT id, name FROM ingredients WHERE name_reading IS NULL").fetchall():
+            con.execute(
+                "UPDATE ingredients SET name_reading = ? WHERE id = ?",
+                (to_reading(row["name"]), row["id"]),
+            )
 
     def _migrate_source_url_nullable(self, con: sqlite3.Connection) -> None:
         row = con.execute(
@@ -153,10 +170,11 @@ class SQLiteRecipeRepository(
                 servings INTEGER,
                 scraped_at TEXT NOT NULL,
                 image_path TEXT,
-                username TEXT
+                username TEXT,
+                name_reading TEXT
             )
         """)
-        con.execute("INSERT INTO recipes_new SELECT id, name, source_url, servings, scraped_at, image_path, username FROM recipes")
+        con.execute("INSERT INTO recipes_new SELECT id, name, source_url, servings, scraped_at, image_path, username, name_reading FROM recipes")
         con.execute("DROP TABLE recipes")
         con.execute("ALTER TABLE recipes_new RENAME TO recipes")
         con.execute("PRAGMA foreign_keys = ON")

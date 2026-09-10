@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-rsync -avz --delete --exclude='node_modules' \
+rsync -avz --delete --delete-excluded --exclude='node_modules' --exclude='.claude' \
   backend \
   frontend \
   nginx \

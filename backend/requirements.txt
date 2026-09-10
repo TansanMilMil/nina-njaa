@@ -8,3 +8,4 @@ python-jose[cryptography]
 slowapi
 Pillow
 python-multipart
+janome

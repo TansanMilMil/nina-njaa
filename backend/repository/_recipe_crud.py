@@ -3,6 +3,7 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Protocol
 
+from kana import to_reading
 from models import Ingredient, Recipe, RecipeCreate, RecipeDetail, RecipeUpdate, Step
 
 
@@ -23,10 +24,17 @@ class _RecipeCRUDMixin:
             if q:
                 tokens = [t for t in re.split(r'[ 　]+', q.strip()) if t]
                 conditions = " AND ".join(
-                    "(to_hiragana(r.name) LIKE to_hiragana(?) OR to_hiragana(i.name) LIKE to_hiragana(?) OR r.source_url LIKE ?)"
+                    "("
+                    "to_hiragana(r.name) LIKE to_hiragana(?) OR to_hiragana(i.name) LIKE to_hiragana(?) OR r.source_url LIKE ? "
+                    "OR r.name_reading LIKE ? OR i.name_reading LIKE ?"
+                    ")"
                     for _ in tokens
                 )
-                params = tuple(p for t in tokens for p in (f"%{t}%", f"%{t}%", f"%{t}%"))
+                params = tuple(
+                    p
+                    for t in tokens
+                    for p in (f"%{t}%", f"%{t}%", f"%{t}%", f"%{to_reading(t)}%", f"%{to_reading(t)}%")
+                )
                 rows = con.execute(
                     f"""
                     SELECT DISTINCT r.*,
@@ -90,16 +98,16 @@ class _RecipeCRUDMixin:
         scraped_at = datetime.now(timezone.utc).isoformat()
         with self._connect() as con:
             cur = con.execute(
-                "INSERT INTO recipes (name, source_url, servings, scraped_at, username) VALUES (?, ?, ?, ?, ?)",
-                (data.name, data.source_url, data.servings, scraped_at, created_by),
+                "INSERT INTO recipes (name, source_url, servings, scraped_at, username, name_reading) VALUES (?, ?, ?, ?, ?, ?)",
+                (data.name, data.source_url, data.servings, scraped_at, created_by, to_reading(data.name)),
             )
             recipe_id = cur.lastrowid
 
             for i, ing in enumerate(data.ingredients):
                 sort_order = ing.sort_order if ing.sort_order is not None else i
                 con.execute(
-                    "INSERT INTO ingredients (recipe_id, group_name, sort_order, name, quantity, unit, note) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (recipe_id, ing.group_name, sort_order, ing.name, ing.quantity, ing.unit, ing.note),
+                    "INSERT INTO ingredients (recipe_id, group_name, sort_order, name, quantity, unit, note, name_reading) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (recipe_id, ing.group_name, sort_order, ing.name, ing.quantity, ing.unit, ing.note, to_reading(ing.name)),
                 )
 
             for step in data.steps:
@@ -117,16 +125,16 @@ class _RecipeCRUDMixin:
                 return None
 
             con.execute(
-                "UPDATE recipes SET name = ?, source_url = ?, servings = ? WHERE id = ?",
-                (data.name, data.source_url, data.servings, id),
+                "UPDATE recipes SET name = ?, source_url = ?, servings = ?, name_reading = ? WHERE id = ?",
+                (data.name, data.source_url, data.servings, to_reading(data.name), id),
             )
 
             con.execute("DELETE FROM ingredients WHERE recipe_id = ?", (id,))
             for i, ing in enumerate(data.ingredients):
                 sort_order = ing.sort_order if ing.sort_order is not None else i
                 con.execute(
-                    "INSERT INTO ingredients (recipe_id, group_name, sort_order, name, quantity, unit, note) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (id, ing.group_name, sort_order, ing.name, ing.quantity, ing.unit, ing.note),
+                    "INSERT INTO ingredients (recipe_id, group_name, sort_order, name, quantity, unit, note, name_reading) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (id, ing.group_name, sort_order, ing.name, ing.quantity, ing.unit, ing.note, to_reading(ing.name)),
                 )
 
             con.execute("DELETE FROM steps WHERE recipe_id = ?", (id,))
