@@ -1,6 +1,7 @@
 import os
 import sqlite3
 
+from kana import to_hiragana
 from repository._bookmark import _BookmarkMixin
 from repository._cooked_log import _CookedLogMixin
 from repository._recipe_crud import _RecipeCRUDMixin
@@ -112,6 +113,7 @@ class SQLiteRecipeRepository(
     def _connect(self) -> sqlite3.Connection:
         con = sqlite3.connect(self.db_path)
         con.row_factory = sqlite3.Row
+        con.create_function("to_hiragana", 1, to_hiragana)
         return con
 
     def _ensure_schema(self) -> None:
