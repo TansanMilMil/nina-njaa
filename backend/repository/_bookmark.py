@@ -11,7 +11,17 @@ class _BookmarkMixin:
     def get_recipe_bookmarks(self: _ConnectionProvider, username: str) -> list[int]:
         with self._connect() as con:
             rows = con.execute(
-                "SELECT recipe_id FROM recipe_bookmarks WHERE username = ? ORDER BY created_at DESC",
+                """
+                SELECT rb.recipe_id
+                FROM recipe_bookmarks rb
+                LEFT JOIN (
+                    SELECT username, recipe_id, MAX(viewed_at) AS last_viewed_at
+                    FROM viewed_recipes
+                    GROUP BY username, recipe_id
+                ) vr ON vr.username = rb.username AND vr.recipe_id = rb.recipe_id
+                WHERE rb.username = ?
+                ORDER BY vr.last_viewed_at DESC, rb.created_at DESC
+                """,
                 (username,),
             ).fetchall()
         return [row["recipe_id"] for row in rows]
@@ -34,7 +44,17 @@ class _BookmarkMixin:
     def get_ingredient_bookmarks(self: _ConnectionProvider, username: str) -> list[str]:
         with self._connect() as con:
             rows = con.execute(
-                "SELECT ingredient_name FROM ingredient_bookmarks WHERE username = ? ORDER BY created_at DESC",
+                """
+                SELECT ib.ingredient_name
+                FROM ingredient_bookmarks ib
+                LEFT JOIN (
+                    SELECT username, ingredient_name, MAX(viewed_at) AS last_viewed_at
+                    FROM viewed_ingredients
+                    GROUP BY username, ingredient_name
+                ) vi ON vi.username = ib.username AND vi.ingredient_name = ib.ingredient_name
+                WHERE ib.username = ?
+                ORDER BY vi.last_viewed_at DESC, ib.created_at DESC
+                """,
                 (username,),
             ).fetchall()
         return [row["ingredient_name"] for row in rows]
