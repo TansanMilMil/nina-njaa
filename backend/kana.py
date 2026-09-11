@@ -28,8 +28,9 @@ def to_reading(text: str) -> str:
     """漢字混じりのテキストをひらがな読みに変換する（検索時の表記ゆれ吸収用）"""
     if not text:
         return ""
-    parts = []
-    for token in _tokenizer.tokenize(_apply_reading_overrides(text)):
-        reading = token.reading
-        parts.append(reading if reading and reading != "*" else token.surface)
+    tokens = _tokenizer.tokenize(_apply_reading_overrides(text))
+    parts = (
+        token.reading if token.reading and token.reading != "*" else token.surface
+        for token in tokens
+    )
     return to_hiragana("".join(parts))
