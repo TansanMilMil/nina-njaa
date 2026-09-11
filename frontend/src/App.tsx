@@ -23,6 +23,7 @@ export default function App() {
   const [loginError, setLoginError] = useState<string | null>(null)
   const [showLogin, setShowLogin] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [addChoiceOpen, setAddChoiceOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -56,6 +57,15 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [showLogin])
+
+  useEffect(() => {
+    if (!addChoiceOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAddChoiceOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [addChoiceOpen])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -112,7 +122,7 @@ export default function App() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    onClick={() => setImportOpen(true)}
+                    onClick={() => setAddChoiceOpen(true)}
                     aria-label="レシピ登録"
                   >
                     <PlusCircle className="h-5 w-5" />
@@ -212,6 +222,54 @@ export default function App() {
           >
             <div onClick={e => e.stopPropagation()}>
               <LoginPage onLogin={handleLogin} error={loginError} loading={loginLoading} />
+            </div>
+          </div>
+        )}
+
+        {addChoiceOpen && currentUsername && (
+          <div
+            onClick={() => setAddChoiceOpen(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              className="mx-4 w-full max-w-sm rounded-xl border bg-card p-6 shadow-lg"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <p className="font-semibold">レシピを追加</p>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setAddChoiceOpen(false)}
+                  aria-label="閉じる"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setAddChoiceOpen(false); setImportOpen(true) }}
+                  className="flex items-center gap-3 rounded-lg border p-4 text-left hover:bg-muted"
+                >
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">AI解析で追加</p>
+                    <p className="text-sm text-muted-foreground">URLを入力するとAIがレシピを解析して登録します</p>
+                  </div>
+                </button>
+                <Link
+                  to="/add-recipe"
+                  onClick={() => setAddChoiceOpen(false)}
+                  className="flex items-center gap-3 rounded-lg border p-4 text-left hover:bg-muted"
+                >
+                  <FilePen className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">手動で追加</p>
+                    <p className="text-sm text-muted-foreground">材料や手順を自分で入力して登録します</p>
+                  </div>
+                </Link>
+              </div>
             </div>
           </div>
         )}
