@@ -149,18 +149,9 @@ export default function App() {
                     {menuOpen && (
                       <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border bg-card shadow-lg z-10">
                         <Link
-                          to="/add-recipe"
-                          onClick={() => setMenuOpen(false)}
-                          className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted rounded-t-lg"
-                        >
-                          <FilePen className="h-4 w-4" />
-                          レシピを手動追加
-                        </Link>
-                        <div className="border-t" />
-                        <Link
                           to="/history"
                           onClick={() => setMenuOpen(false)}
-                          className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted"
+                          className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted rounded-t-lg"
                         >
                           <Clock className="h-4 w-4" />
                           最近見たもの
