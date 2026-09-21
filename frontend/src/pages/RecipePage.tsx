@@ -437,160 +437,162 @@ export default function RecipePage() {
 
   return (
     <article className="flex flex-col gap-5">
-      {recipe.image_path && (
-        <img
-          src={`/uploads/${recipe.image_path}`}
-          alt={recipe.name ?? ''}
-          className="w-full rounded-lg object-cover max-h-64"
-        />
-      )}
+      <div className="flex flex-col gap-5 lg:block lg:overflow-hidden lg:space-y-5">
+        {recipe.image_path && (
+          <img
+            src={`/uploads/${recipe.image_path}`}
+            alt={recipe.name ?? ''}
+            className="w-full rounded-lg object-cover max-h-64 lg:float-left lg:mb-4 lg:mr-6 lg:h-72 lg:w-72 lg:max-h-none"
+          />
+        )}
 
-      <div className="flex items-center gap-4">
-        <h1 className="flex-1 text-2xl font-bold">{recipe.name}</h1>
-        {canEdit && <Button variant="outline" size="sm" onClick={startEditing}>編集</Button>}
-      </div>
-
-      {currentUsername && (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <BookmarkButton
-              isBookmarked={isBookmarked(recipe.id)}
-              onToggle={() => toggle(recipe.id)}
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCookLogClick}
-              disabled={cookLogging}
-            >
-              {cookLogging ? '記録中...' : '作った！'}
-            </Button>
-            {cookedLog && (
-              <Link
-                to={`/cooked-logs/${recipe.id}`}
-                className="text-sm text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
-              >
-                {cookedLog.count}回作った・最終:{' '}
-                {new Date(cookedLog.last_cooked_at).toLocaleDateString('ja-JP')}
-              </Link>
-            )}
-          </div>
-          {cookedLog?.latest_memo && (
-            <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground whitespace-pre-wrap">
-              <span className="mb-1 block text-xs font-semibold">直近のメモ:</span>
-              {cookedLog.latest_memo}
-            </div>
-          )}
+        <div className="flex items-center gap-4">
+          <h1 className="flex-1 text-2xl font-bold">{recipe.name}</h1>
+          {canEdit && <Button variant="outline" size="sm" onClick={startEditing}>編集</Button>}
         </div>
-      )}
 
-      {isCookLogModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
-            <h2 className="mb-4 text-xl font-bold">料理記録の追加</h2>
-            <textarea
-              className="mb-4 w-full rounded-md border bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-              rows={4}
-              placeholder="メモ（任意）&#13;&#10;例：塩を少し減らしてちょうどよかった"
-              value={cookLogMemo}
-              onChange={e => setCookLogMemo(e.target.value)}
-              disabled={cookLogging}
-            />
-            <div className="flex justify-end gap-3">
+        {currentUsername && (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <BookmarkButton
+                isBookmarked={isBookmarked(recipe.id)}
+                onToggle={() => toggle(recipe.id)}
+              />
               <Button
                 variant="outline"
-                onClick={() => setIsCookLogModalOpen(false)}
+                size="sm"
+                onClick={handleCookLogClick}
                 disabled={cookLogging}
               >
-                キャンセル
+                {cookLogging ? '記録中...' : '作った！'}
               </Button>
-              <Button onClick={submitCookLog} disabled={cookLogging}>
-                {cookLogging ? '記録中...' : '記録する'}
-              </Button>
+              {cookedLog && (
+                <Link
+                  to={`/cooked-logs/${recipe.id}`}
+                  className="text-sm text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
+                >
+                  {cookedLog.count}回作った・最終:{' '}
+                  {new Date(cookedLog.last_cooked_at).toLocaleDateString('ja-JP')}
+                </Link>
+              )}
+            </div>
+            {cookedLog?.latest_memo && (
+              <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground whitespace-pre-wrap">
+                <span className="mb-1 block text-xs font-semibold">直近のメモ:</span>
+                {cookedLog.latest_memo}
+              </div>
+            )}
+          </div>
+        )}
+
+        {isCookLogModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
+              <h2 className="mb-4 text-xl font-bold">料理記録の追加</h2>
+              <textarea
+                className="mb-4 w-full rounded-md border bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                rows={4}
+                placeholder="メモ（任意）&#13;&#10;例：塩を少し減らしてちょうどよかった"
+                value={cookLogMemo}
+                onChange={e => setCookLogMemo(e.target.value)}
+                disabled={cookLogging}
+              />
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCookLogModalOpen(false)}
+                  disabled={cookLogging}
+                >
+                  キャンセル
+                </Button>
+                <Button onClick={submitCookLog} disabled={cookLogging}>
+                  {cookLogging ? '記録中...' : '記録する'}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <p>
-        <a
-          href={recipe.source_url}
-          className="text-primary underline-offset-4 hover:underline"
-        >
-          元レシピを見る
-        </a>
-      </p>
+        <p>
+          <a
+            href={recipe.source_url}
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            元レシピを見る
+          </a>
+        </p>
 
-      {recipe.servings && <p className="text-sm">人数：{recipe.servings}</p>}
+        {recipe.servings && <p className="text-sm">人数：{recipe.servings}</p>}
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">材料</h2>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted-foreground">分量</span>
-          {[0.5, 1, 2, 3].map(v => (
-            <Button
-              key={v}
-              type="button"
-              variant={multiplier === v ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => applyMultiplierPreset(v)}
-            >
-              {v}倍
-            </Button>
-          ))}
-          <Input
-            type="number"
-            step="0.1"
-            min="0.1"
-            value={multiplierInput}
-            onChange={e => handleMultiplierInputChange(e.target.value)}
-            className="w-20"
-          />
-          <span className="text-sm text-muted-foreground">倍</span>
-        </div>
-        {grouped.map(([groupName, items], gi) => (
-          <div key={gi} className="mb-3">
-            {groupName && <h3 className="my-2 font-semibold">{groupName}</h3>}
-            <ul className="flex flex-col gap-1.5">
-              {items.map(ing => (
-                <li key={ing.id} className="flex items-baseline gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => toggleIngredient(ing.name)}
-                    title={isIngredientBookmarked(ing.name) ? 'ブックマーク解除' : 'ブックマークする'}
-                    className="shrink-0"
-                  >
-                    <Star
-                      className={cn(
-                        'h-4 w-4',
-                        isIngredientBookmarked(ing.name)
-                          ? 'fill-primary text-primary'
-                          : 'text-muted-foreground/40'
-                      )}
-                    />
-                  </button>
-                  <span className="text-sm">
-                    <Link
-                      to={`/?q=${encodeURIComponent(ing.name)}`}
-                      className="underline decoration-muted-foreground/40 underline-offset-2"
-                    >
-                      {ing.name}
-                    </Link>
-                    {(ing.quantity || ing.unit) && (
-                      <>
-                        {' '}
-                        {scaleQuantity(ing.quantity, multiplier)}
-                        {ing.unit ?? ''}
-                      </>
-                    )}
-                    {ing.note && <span className="text-muted-foreground">（{ing.note}）</span>}
-                  </span>
-                </li>
-              ))}
-            </ul>
+        <section>
+          <h2 className="mb-3 text-lg font-semibold">材料</h2>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">分量</span>
+            {[0.5, 1, 2, 3].map(v => (
+              <Button
+                key={v}
+                type="button"
+                variant={multiplier === v ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => applyMultiplierPreset(v)}
+              >
+                {v}倍
+              </Button>
+            ))}
+            <Input
+              type="number"
+              step="0.1"
+              min="0.1"
+              value={multiplierInput}
+              onChange={e => handleMultiplierInputChange(e.target.value)}
+              className="w-20"
+            />
+            <span className="text-sm text-muted-foreground">倍</span>
           </div>
-        ))}
-      </section>
+          {grouped.map(([groupName, items], gi) => (
+            <div key={gi} className="mb-3">
+              {groupName && <h3 className="my-2 font-semibold">{groupName}</h3>}
+              <ul className="flex flex-col gap-1.5">
+                {items.map(ing => (
+                  <li key={ing.id} className="flex items-baseline gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleIngredient(ing.name)}
+                      title={isIngredientBookmarked(ing.name) ? 'ブックマーク解除' : 'ブックマークする'}
+                      className="shrink-0"
+                    >
+                      <Star
+                        className={cn(
+                          'h-4 w-4',
+                          isIngredientBookmarked(ing.name)
+                            ? 'fill-primary text-primary'
+                            : 'text-muted-foreground/40'
+                        )}
+                      />
+                    </button>
+                    <span className="text-sm">
+                      <Link
+                        to={`/?q=${encodeURIComponent(ing.name)}`}
+                        className="underline decoration-muted-foreground/40 underline-offset-2"
+                      >
+                        {ing.name}
+                      </Link>
+                      {(ing.quantity || ing.unit) && (
+                        <>
+                          {' '}
+                          {scaleQuantity(ing.quantity, multiplier)}
+                          {ing.unit ?? ''}
+                        </>
+                      )}
+                      {ing.note && <span className="text-muted-foreground">（{ing.note}）</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      </div>
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">作り方</h2>
