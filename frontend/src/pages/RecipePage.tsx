@@ -1,203 +1,43 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Star, X } from 'lucide-react'
-import { getRecipe, updateRecipe, recordRecipeViewed, deleteRecipe, addCookedLog, getCookedLogForRecipe, uploadRecipeImage, deleteRecipeImage } from '../api'
-import type { RecipeDetail, Ingredient, CookedLogEntry } from '../api'
+import { deleteRecipe } from '../api'
+import type { RecipeDetail } from '../api'
 import BookmarkButton from '../components/BookmarkButton'
+import CookLogModal from '../components/CookLogModal'
+import ImageLightbox from '../components/ImageLightbox'
+import RecipeEditForm from '../components/RecipeEditForm'
+import RecipeIngredientsSection from '../components/RecipeIngredientsSection'
 import { RecipePageSkeleton } from '../components/Skeleton'
 import { useBookmarks } from '../hooks/useBookmarks'
+import { useCookLog } from '../hooks/useCookLog'
 import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
+import { useRecipeDetail } from '../hooks/useRecipeDetail'
+import { useRecipeImage } from '../hooks/useRecipeImage'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useCurrentUser } from '../contexts/UserContext'
 
-const NUMBER_TOKEN_PATTERN = /(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?)/g
-
-function parseNumberToken(token: string): number | null {
-  const mixed = token.match(/^(\d+)\s+(\d+)\/(\d+)$/)
-  if (mixed) {
-    const [, whole, num, den] = mixed
-    return Number(den) === 0 ? null : Number(whole) + Number(num) / Number(den)
-  }
-  const fraction = token.match(/^(\d+)\/(\d+)$/)
-  if (fraction) {
-    const [, num, den] = fraction
-    return Number(den) === 0 ? null : Number(num) / Number(den)
-  }
-  if (/^\d+(?:\.\d+)?$/.test(token)) return Number(token)
-  return null
-}
-
-function formatScaledNumber(value: number): string {
-  return String(Math.round(value * 100) / 100)
-}
-
-function scaleQuantity(quantity: string | null, multiplier: number): string {
-  if (!quantity || multiplier === 1) return quantity ?? ''
-  return quantity.replace(NUMBER_TOKEN_PATTERN, match => {
-    const value = parseNumberToken(match)
-    return value === null ? match : formatScaledNumber(value * multiplier)
-  })
-}
-
-function groupIngredients(ingredients: Ingredient[]): [string | null, Ingredient[]][] {
-  const groups: [string | null, Ingredient[]][] = []
-  for (const ing of ingredients) {
-    const key = ing.group_name ?? null
-    const last = groups[groups.length - 1]
-    if (last && last[0] === key) {
-      last[1].push(ing)
-    } else {
-      groups.push([key, [ing]])
-    }
-  }
-  return groups
-}
-
-interface EditIngredient {
-  group_name: string
-  name: string
-  quantity: string
-  unit: string
-  note: string
-}
-
-interface EditStep {
-  description: string
-}
-
-interface EditState {
-  name: string
-  source_url: string
-  servings: string
-  ingredients: EditIngredient[]
-  steps: EditStep[]
-}
-
-function recipeToEditState(recipe: RecipeDetail): EditState {
-  return {
-    name: recipe.name ?? '',
-    source_url: recipe.source_url ?? '',
-    servings: recipe.servings != null ? String(recipe.servings) : '',
-    ingredients: recipe.ingredients.map(ing => ({
-      group_name: ing.group_name ?? '',
-      name: ing.name ?? '',
-      quantity: ing.quantity ?? '',
-      unit: ing.unit ?? '',
-      note: ing.note ?? '',
-    })),
-    steps: recipe.steps.map(step => ({ description: step.description ?? '' })),
-  }
-}
-
 export default function RecipePage() {
   const { id } = useParams<{ id: string }>()
-  const [recipe, setRecipe] = useState<RecipeDetail | null>(null)
-  const [error, setError] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
-  const [editState, setEditState] = useState<EditState | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const navigate = useNavigate()
-  const [cookLogging, setCookLogging] = useState(false)
-  const [cookedLog, setCookedLog] = useState<CookedLogEntry | null>(null)
-  const [isCookLogModalOpen, setIsCookLogModalOpen] = useState(false)
+  const currentUsername = useCurrentUser()
+  const { recipe, setRecipe, error, cookedLog, refreshCookedLog } = useRecipeDetail(id)
+  const { imageUploading, handleImageUpload, handleDeleteImage } = useRecipeImage(id, setRecipe)
+  const cookLog = useCookLog(id, refreshCookedLog)
+  const [isEditing, setIsEditing] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [isImageLightboxOpen, setIsImageLightboxOpen] = useState(false)
-  const [cookLogMemo, setCookLogMemo] = useState('')
-  const [imageUploading, setImageUploading] = useState(false)
   const [multiplier, setMultiplier] = useState(1)
   const [multiplierInput, setMultiplierInput] = useState('1')
   const { isBookmarked, toggle } = useBookmarks()
   const { isIngredientBookmarked, toggleIngredient } = useIngredientBookmarks()
-  const currentUsername = useCurrentUser()
 
   useEffect(() => {
     if (!id) return
-    let cancelled = false
-    setRecipe(null)
-    setError(false)
     setIsEditing(false)
     setMultiplier(1)
     setMultiplierInput('1')
-    getRecipe(Number(id))
-      .then(data => {
-        if (!cancelled) {
-          setRecipe(data)
-          recordRecipeViewed(Number(id)).catch(() => {})
-          if (currentUsername) {
-            getCookedLogForRecipe(Number(id)).then(log => {
-              if (!cancelled) setCookedLog(log)
-            }).catch(() => {})
-          }
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setError(true)
-      })
-    return () => { cancelled = true }
   }, [id, currentUsername])
-
-  function startEditing() {
-    if (!recipe) return
-    setEditState(recipeToEditState(recipe))
-    setIsEditing(true)
-  }
-
-  function cancelEditing() {
-    setIsEditing(false)
-    setEditState(null)
-  }
-
-  function handleCookLogClick() {
-    setIsCookLogModalOpen(true)
-    setCookLogMemo('')
-  }
-
-  async function submitCookLog() {
-    if (!id) return
-    setCookLogging(true)
-    try {
-      await addCookedLog(Number(id), cookLogMemo)
-      toast.success('料理記録を追加しました！')
-      setIsCookLogModalOpen(false)
-      setCookLogMemo('')
-      getCookedLogForRecipe(Number(id)).then(log => setCookedLog(log)).catch(() => {})
-    } catch {
-      toast.error('記録に失敗しました')
-    } finally {
-      setCookLogging(false)
-    }
-  }
-
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || !id) return
-    setImageUploading(true)
-    try {
-      const result = await uploadRecipeImage(Number(id), file)
-      setRecipe(prev => prev ? { ...prev, image_path: `${result.image_path}?t=${Date.now()}` } : prev)
-      toast.success('画像をアップロードしました')
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'アップロードに失敗しました'
-      toast.error(msg)
-    } finally {
-      setImageUploading(false)
-      e.target.value = ''
-    }
-  }
-
-  async function handleDeleteImage() {
-    if (!id) return
-    try {
-      await deleteRecipeImage(Number(id))
-      setRecipe(prev => prev ? { ...prev, image_path: null } : prev)
-      toast.success('画像を削除しました')
-    } catch {
-      toast.error('削除に失敗しました')
-    }
-  }
 
   async function handleDelete() {
     if (!id || !window.confirm(`「${recipe?.name}」を削除しますか？`)) return
@@ -213,35 +53,9 @@ export default function RecipePage() {
     }
   }
 
-  async function saveEditing() {
-    if (!editState || !id) return
-    setSaving(true)
-    try {
-      const updated = await updateRecipe(Number(id), {
-        name: editState.name,
-        source_url: editState.source_url,
-        servings: editState.servings !== '' ? Number(editState.servings) : null,
-        ingredients: editState.ingredients.map((ing, i) => ({
-          group_name: ing.group_name || null,
-          name: ing.name,
-          quantity: ing.quantity || null,
-          unit: ing.unit || null,
-          note: ing.note || null,
-          sort_order: i,
-        })),
-        steps: editState.steps.map((step, i) => ({
-          step_number: i + 1,
-          description: step.description,
-        })),
-      })
-      setRecipe({ ...updated, image_path: recipe?.image_path ?? null })
-      setIsEditing(false)
-      setEditState(null)
-    } catch {
-      alert('保存に失敗しました')
-    } finally {
-      setSaving(false)
-    }
+  function handleSaved(updated: RecipeDetail) {
+    setRecipe({ ...updated, image_path: recipe?.image_path ?? null })
+    setIsEditing(false)
   }
 
   function handleMultiplierInputChange(value: string) {
@@ -257,184 +71,26 @@ export default function RecipePage() {
     setMultiplierInput(String(value))
   }
 
-  function updateField<K extends keyof EditState>(key: K, value: EditState[K]) {
-    setEditState(prev => prev ? { ...prev, [key]: value } : prev)
-  }
-
-  function updateIngredient(index: number, field: keyof EditIngredient, value: string) {
-    setEditState(prev => {
-      if (!prev) return prev
-      const ingredients = [...prev.ingredients]
-      ingredients[index] = { ...ingredients[index], [field]: value }
-      return { ...prev, ingredients }
-    })
-  }
-
-  function addIngredient() {
-    setEditState(prev => {
-      if (!prev) return prev
-      return {
-        ...prev,
-        ingredients: [...prev.ingredients, { group_name: '', name: '', quantity: '', unit: '', note: '' }],
-      }
-    })
-  }
-
-  function removeIngredient(index: number) {
-    setEditState(prev => {
-      if (!prev) return prev
-      return { ...prev, ingredients: prev.ingredients.filter((_, i) => i !== index) }
-    })
-  }
-
-  function updateStep(index: number, value: string) {
-    setEditState(prev => {
-      if (!prev) return prev
-      const steps = [...prev.steps]
-      steps[index] = { description: value }
-      return { ...prev, steps }
-    })
-  }
-
-  function addStep() {
-    setEditState(prev => {
-      if (!prev) return prev
-      return { ...prev, steps: [...prev.steps, { description: '' }] }
-    })
-  }
-
-  function removeStep(index: number) {
-    setEditState(prev => {
-      if (!prev) return prev
-      return { ...prev, steps: prev.steps.filter((_, i) => i !== index) }
-    })
-  }
-
   if (error) return <p className="text-muted-foreground">レシピが見つかりませんでした</p>
   if (!recipe) return <RecipePageSkeleton />
 
   const canEdit = currentUsername !== null && (recipe.username == null || recipe.username === currentUsername)
 
-  if (isEditing && editState) {
+  if (isEditing && id) {
     return (
-      <article className="flex flex-col gap-5">
-        <div className="flex items-center gap-2">
-          <h1 className="flex-1 text-2xl font-bold">編集</h1>
-          <Button variant="destructive" size="sm" onClick={handleDelete} disabled={saving || deleting}>
-            {deleting ? '削除中...' : '削除'}
-          </Button>
-          <Button variant="outline" size="sm" onClick={cancelEditing} disabled={saving || deleting}>
-            キャンセル
-          </Button>
-          <Button size="sm" onClick={saveEditing} disabled={saving || deleting}>
-            {saving ? '保存中...' : '保存'}
-          </Button>
-        </div>
-
-        {recipe.image_path ? (
-          <div className="relative">
-            <img
-              src={`/uploads/${recipe.image_path}`}
-              alt={recipe.name ?? ''}
-              className="w-full rounded-lg object-cover max-h-64"
-            />
-            <button
-              type="button"
-              onClick={handleDeleteImage}
-              className="absolute top-2 right-2 rounded-full bg-black/50 p-1 text-white hover:bg-black/70"
-              aria-label="画像を削除"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        ) : (
-          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-muted py-6 text-sm text-muted-foreground hover:border-primary hover:text-primary">
-            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={imageUploading} />
-            {imageUploading ? 'アップロード中...' : '画像を追加'}
-          </label>
-        )}
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">レシピ名</span>
-          <Input value={editState.name} onChange={e => updateField('name', e.target.value)} />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">元レシピURL</span>
-          <Input value={editState.source_url} onChange={e => updateField('source_url', e.target.value)} />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">人数</span>
-          <Input
-            type="number"
-            value={editState.servings}
-            onChange={e => updateField('servings', e.target.value)}
-            className="w-24"
-          />
-        </label>
-
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">材料</h2>
-          {editState.ingredients.map((ing, i) => (
-            <div key={i} className="mb-2 flex flex-wrap items-center gap-2">
-              <Input
-                placeholder="グループ名"
-                value={ing.group_name}
-                onChange={e => updateIngredient(i, 'group_name', e.target.value)}
-                className="w-28"
-              />
-              <Input
-                placeholder="材料名"
-                value={ing.name}
-                onChange={e => updateIngredient(i, 'name', e.target.value)}
-                className="min-w-28 flex-1"
-              />
-              <Input
-                placeholder="分量"
-                value={ing.quantity}
-                onChange={e => updateIngredient(i, 'quantity', e.target.value)}
-                className="w-20"
-              />
-              <Input
-                placeholder="単位"
-                value={ing.unit}
-                onChange={e => updateIngredient(i, 'unit', e.target.value)}
-                className="w-16"
-              />
-              <Input
-                placeholder="備考"
-                value={ing.note}
-                onChange={e => updateIngredient(i, 'note', e.target.value)}
-                className="w-28"
-              />
-              <Button variant="ghost" size="sm" onClick={() => removeIngredient(i)}>削除</Button>
-            </div>
-          ))}
-          <Button variant="outline" size="sm" onClick={addIngredient}>+ 材料を追加</Button>
-        </section>
-
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">作り方</h2>
-          {editState.steps.map((step, i) => (
-            <div key={i} className="mb-2 flex items-start gap-2">
-              <span className="min-w-6 pt-1.5 text-sm">{i + 1}.</span>
-              <textarea
-                value={step.description}
-                onChange={e => updateStep(i, e.target.value)}
-                rows={2}
-                className="flex w-full flex-1 rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-              />
-              <Button variant="ghost" size="sm" onClick={() => removeStep(i)}>削除</Button>
-            </div>
-          ))}
-          <Button variant="outline" size="sm" onClick={addStep}>+ 手順を追加</Button>
-        </section>
-      </article>
+      <RecipeEditForm
+        recipe={recipe}
+        recipeId={id}
+        imageUploading={imageUploading}
+        deleting={deleting}
+        onImageUpload={handleImageUpload}
+        onDeleteImage={handleDeleteImage}
+        onSaved={handleSaved}
+        onCancel={() => setIsEditing(false)}
+        onDelete={handleDelete}
+      />
     )
   }
-
-  const grouped = groupIngredients(recipe.ingredients)
 
   return (
     <article className="flex flex-col gap-5">
@@ -456,7 +112,7 @@ export default function RecipePage() {
 
         <div className="flex items-center gap-4">
           <h1 className="flex-1 text-2xl font-bold">{recipe.name}</h1>
-          {canEdit && <Button variant="outline" size="sm" onClick={startEditing}>編集</Button>}
+          {canEdit && <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>編集</Button>}
         </div>
 
         {currentUsername && (
@@ -469,10 +125,10 @@ export default function RecipePage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleCookLogClick}
-                disabled={cookLogging}
+                onClick={cookLog.openModal}
+                disabled={cookLog.cookLogging}
               >
-                {cookLogging ? '記録中...' : '作った！'}
+                {cookLog.cookLogging ? '記録中...' : '作った！'}
               </Button>
               {cookedLog && (
                 <Link
@@ -493,32 +149,14 @@ export default function RecipePage() {
           </div>
         )}
 
-        {isCookLogModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
-              <h2 className="mb-4 text-xl font-bold">料理記録の追加</h2>
-              <textarea
-                className="mb-4 w-full rounded-md border bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                rows={4}
-                placeholder="メモ（任意）&#13;&#10;例：塩を少し減らしてちょうどよかった"
-                value={cookLogMemo}
-                onChange={e => setCookLogMemo(e.target.value)}
-                disabled={cookLogging}
-              />
-              <div className="flex justify-end gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsCookLogModalOpen(false)}
-                  disabled={cookLogging}
-                >
-                  キャンセル
-                </Button>
-                <Button onClick={submitCookLog} disabled={cookLogging}>
-                  {cookLogging ? '記録中...' : '記録する'}
-                </Button>
-              </div>
-            </div>
-          </div>
+        {cookLog.isModalOpen && (
+          <CookLogModal
+            memo={cookLog.memo}
+            submitting={cookLog.cookLogging}
+            onMemoChange={cookLog.setMemo}
+            onSubmit={cookLog.submit}
+            onClose={cookLog.closeModal}
+          />
         )}
 
         <p>
@@ -532,74 +170,15 @@ export default function RecipePage() {
 
         {recipe.servings && <p className="text-sm">人数：{recipe.servings}</p>}
 
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">材料</h2>
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="text-sm text-muted-foreground">分量</span>
-            {[0.5, 1, 2, 3].map(v => (
-              <Button
-                key={v}
-                type="button"
-                variant={multiplier === v ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => applyMultiplierPreset(v)}
-              >
-                {v}倍
-              </Button>
-            ))}
-            <Input
-              type="number"
-              step="0.1"
-              min="0.1"
-              value={multiplierInput}
-              onChange={e => handleMultiplierInputChange(e.target.value)}
-              className="w-20"
-            />
-            <span className="text-sm text-muted-foreground">倍</span>
-          </div>
-          {grouped.map(([groupName, items], gi) => (
-            <div key={gi} className="mb-3">
-              {groupName && <h3 className="my-2 font-semibold">{groupName}</h3>}
-              <ul className="flex flex-col gap-1.5">
-                {items.map(ing => (
-                  <li key={ing.id} className="flex items-baseline gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => toggleIngredient(ing.name)}
-                      title={isIngredientBookmarked(ing.name) ? 'ブックマーク解除' : 'ブックマークする'}
-                      className="shrink-0"
-                    >
-                      <Star
-                        className={cn(
-                          'h-4 w-4',
-                          isIngredientBookmarked(ing.name)
-                            ? 'fill-primary text-primary'
-                            : 'text-muted-foreground/40'
-                        )}
-                      />
-                    </button>
-                    <span className="text-sm">
-                      <Link
-                        to={`/?q=${encodeURIComponent(ing.name)}`}
-                        className="underline decoration-muted-foreground/40 underline-offset-2"
-                      >
-                        {ing.name}
-                      </Link>
-                      {(ing.quantity || ing.unit) && (
-                        <>
-                          {' '}
-                          {scaleQuantity(ing.quantity, multiplier)}
-                          {ing.unit ?? ''}
-                        </>
-                      )}
-                      {ing.note && <span className="text-muted-foreground">（{ing.note}）</span>}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </section>
+        <RecipeIngredientsSection
+          ingredients={recipe.ingredients}
+          multiplier={multiplier}
+          multiplierInput={multiplierInput}
+          isIngredientBookmarked={isIngredientBookmarked}
+          onToggleIngredient={toggleIngredient}
+          onMultiplierInputChange={handleMultiplierInputChange}
+          onMultiplierPreset={applyMultiplierPreset}
+        />
       </div>
 
       <section>
@@ -612,25 +191,11 @@ export default function RecipePage() {
       </section>
 
       {isImageLightboxOpen && recipe.image_path && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setIsImageLightboxOpen(false)}
-        >
-          <button
-            type="button"
-            onClick={() => setIsImageLightboxOpen(false)}
-            className="absolute top-4 right-4 rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
-            aria-label="閉じる"
-          >
-            <X className="h-6 w-6" />
-          </button>
-          <img
-            src={`/uploads/${recipe.image_path}`}
-            alt={recipe.name ?? ''}
-            className="max-h-full max-w-full rounded-lg object-contain"
-            onClick={e => e.stopPropagation()}
-          />
-        </div>
+        <ImageLightbox
+          src={`/uploads/${recipe.image_path}`}
+          alt={recipe.name ?? ''}
+          onClose={() => setIsImageLightboxOpen(false)}
+        />
       )}
     </article>
   )
