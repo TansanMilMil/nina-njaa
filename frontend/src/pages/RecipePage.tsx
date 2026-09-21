@@ -5,6 +5,7 @@ import type { RecipeDetail } from '../api'
 import BookmarkButton from '../components/BookmarkButton'
 import CookLogModal from '../components/CookLogModal'
 import ImageLightbox from '../components/ImageLightbox'
+import LinkifiedText from '../components/LinkifiedText'
 import RecipeEditForm from '../components/RecipeEditForm'
 import RecipeIngredientsSection from '../components/RecipeIngredientsSection'
 import { RecipePageSkeleton } from '../components/Skeleton'
@@ -188,7 +189,7 @@ export default function RecipePage() {
           <h2 className="mb-3 text-lg font-semibold">作り方</h2>
           <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm">
             {recipe.steps.map(step => (
-              <li key={step.id}>{step.description}</li>
+              <li key={step.id}><LinkifiedText text={step.description} /></li>
             ))}
           </ol>
         </section>
