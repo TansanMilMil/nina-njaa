@@ -94,12 +94,12 @@ export default function RecipePage() {
 
   return (
     <article className="flex flex-col gap-5">
-      <div className="flex flex-col gap-5 lg:block lg:overflow-hidden lg:space-y-5">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
         {recipe.image_path && (
           <button
             type="button"
             onClick={() => setIsImageLightboxOpen(true)}
-            className="block w-full cursor-zoom-in lg:float-left lg:mb-4 lg:mr-6 lg:w-72"
+            className="block w-full cursor-zoom-in lg:w-72 lg:flex-shrink-0"
             aria-label="画像を拡大表示"
           >
             <img
@@ -110,66 +110,70 @@ export default function RecipePage() {
           </button>
         )}
 
-        <div className="flex items-center gap-4">
-          <h1 className="flex-1 text-2xl font-bold">{recipe.name}</h1>
-          {canEdit && <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>編集</Button>}
-        </div>
+        <div className="flex flex-col gap-5 lg:flex-1">
+          <div className="flex items-center gap-4">
+            <h1 className="flex-1 text-2xl font-bold">{recipe.name}</h1>
+            {canEdit && <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>編集</Button>}
+          </div>
 
-        {currentUsername && (
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <BookmarkButton
-                isBookmarked={isBookmarked(recipe.id)}
-                onToggle={() => toggle(recipe.id)}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={cookLog.openModal}
-                disabled={cookLog.cookLogging}
-              >
-                {cookLog.cookLogging ? '記録中...' : '作った！'}
-              </Button>
-              {cookedLog && (
-                <Link
-                  to={`/cooked-logs/${recipe.id}`}
-                  className="text-sm text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
+          {currentUsername && (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <BookmarkButton
+                  isBookmarked={isBookmarked(recipe.id)}
+                  onToggle={() => toggle(recipe.id)}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={cookLog.openModal}
+                  disabled={cookLog.cookLogging}
                 >
-                  {cookedLog.count}回作った・最終:{' '}
-                  {new Date(cookedLog.last_cooked_at).toLocaleDateString('ja-JP')}
-                </Link>
+                  {cookLog.cookLogging ? '記録中...' : '作った！'}
+                </Button>
+                {cookedLog && (
+                  <Link
+                    to={`/cooked-logs/${recipe.id}`}
+                    className="text-sm text-muted-foreground hover:text-foreground hover:underline underline-offset-4"
+                  >
+                    {cookedLog.count}回作った・最終:{' '}
+                    {new Date(cookedLog.last_cooked_at).toLocaleDateString('ja-JP')}
+                  </Link>
+                )}
+              </div>
+              {cookedLog?.latest_memo && (
+                <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground whitespace-pre-wrap">
+                  <span className="mb-1 block text-xs font-semibold">直近のメモ:</span>
+                  {cookedLog.latest_memo}
+                </div>
               )}
             </div>
-            {cookedLog?.latest_memo && (
-              <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground whitespace-pre-wrap">
-                <span className="mb-1 block text-xs font-semibold">直近のメモ:</span>
-                {cookedLog.latest_memo}
-              </div>
-            )}
-          </div>
-        )}
+          )}
 
-        {cookLog.isModalOpen && (
-          <CookLogModal
-            memo={cookLog.memo}
-            submitting={cookLog.cookLogging}
-            onMemoChange={cookLog.setMemo}
-            onSubmit={cookLog.submit}
-            onClose={cookLog.closeModal}
-          />
-        )}
+          {cookLog.isModalOpen && (
+            <CookLogModal
+              memo={cookLog.memo}
+              submitting={cookLog.cookLogging}
+              onMemoChange={cookLog.setMemo}
+              onSubmit={cookLog.submit}
+              onClose={cookLog.closeModal}
+            />
+          )}
 
-        <p>
-          <a
-            href={recipe.source_url}
-            className="text-primary underline-offset-4 hover:underline"
-          >
-            元レシピを見る
-          </a>
-        </p>
+          <p>
+            <a
+              href={recipe.source_url}
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              元レシピを見る
+            </a>
+          </p>
+        </div>
+      </div>
 
-        {recipe.servings && <p className="text-sm">人数：{recipe.servings}</p>}
+      {recipe.servings && <p className="text-sm">人数：{recipe.servings}</p>}
 
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <RecipeIngredientsSection
           ingredients={recipe.ingredients}
           multiplier={multiplier}
@@ -179,16 +183,16 @@ export default function RecipePage() {
           onMultiplierInputChange={handleMultiplierInputChange}
           onMultiplierPreset={applyMultiplierPreset}
         />
-      </div>
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">作り方</h2>
-        <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm">
-          {recipe.steps.map(step => (
-            <li key={step.id}>{step.description}</li>
-          ))}
-        </ol>
-      </section>
+        <section>
+          <h2 className="mb-3 text-lg font-semibold">作り方</h2>
+          <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm">
+            {recipe.steps.map(step => (
+              <li key={step.id}>{step.description}</li>
+            ))}
+          </ol>
+        </section>
+      </div>
 
       {isImageLightboxOpen && recipe.image_path && (
         <ImageLightbox
