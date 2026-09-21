@@ -104,6 +104,7 @@ export default function RecipePage() {
   const [cookLogging, setCookLogging] = useState(false)
   const [cookedLog, setCookedLog] = useState<CookedLogEntry | null>(null)
   const [isCookLogModalOpen, setIsCookLogModalOpen] = useState(false)
+  const [isImageLightboxOpen, setIsImageLightboxOpen] = useState(false)
   const [cookLogMemo, setCookLogMemo] = useState('')
   const [imageUploading, setImageUploading] = useState(false)
   const [multiplier, setMultiplier] = useState(1)
@@ -439,11 +440,18 @@ export default function RecipePage() {
     <article className="flex flex-col gap-5">
       <div className="flex flex-col gap-5 lg:block lg:overflow-hidden lg:space-y-5">
         {recipe.image_path && (
-          <img
-            src={`/uploads/${recipe.image_path}`}
-            alt={recipe.name ?? ''}
-            className="w-full rounded-lg object-cover max-h-64 lg:float-left lg:mb-4 lg:mr-6 lg:h-72 lg:w-72 lg:max-h-none"
-          />
+          <button
+            type="button"
+            onClick={() => setIsImageLightboxOpen(true)}
+            className="block w-full cursor-zoom-in lg:float-left lg:mb-4 lg:mr-6 lg:w-72"
+            aria-label="画像を拡大表示"
+          >
+            <img
+              src={`/uploads/${recipe.image_path}`}
+              alt={recipe.name ?? ''}
+              className="w-full rounded-lg object-cover max-h-64 lg:h-72 lg:max-h-none"
+            />
+          </button>
         )}
 
         <div className="flex items-center gap-4">
@@ -602,6 +610,28 @@ export default function RecipePage() {
           ))}
         </ol>
       </section>
+
+      {isImageLightboxOpen && recipe.image_path && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setIsImageLightboxOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setIsImageLightboxOpen(false)}
+            className="absolute top-4 right-4 rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
+            aria-label="閉じる"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <img
+            src={`/uploads/${recipe.image_path}`}
+            alt={recipe.name ?? ''}
+            className="max-h-full max-w-full rounded-lg object-contain"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
     </article>
   )
 }
