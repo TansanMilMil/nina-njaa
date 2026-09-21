@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createRecipe } from '../api'
 import { toast } from 'sonner'
+import RecipeStepsEditor, { createStepId } from '@/components/RecipeStepsEditor'
+import type { RecipeStep } from '@/components/RecipeStepsEditor'
 
 interface FormIngredient {
   group_name: string
@@ -11,10 +13,6 @@ interface FormIngredient {
   quantity: string
   unit: string
   note: string
-}
-
-interface FormStep {
-  description: string
 }
 
 const emptyIngredient = (): FormIngredient => ({
@@ -31,7 +29,7 @@ export default function AddRecipePage() {
   const [sourceUrl, setSourceUrl] = useState('')
   const [servings, setServings] = useState('')
   const [ingredients, setIngredients] = useState<FormIngredient[]>([emptyIngredient()])
-  const [steps, setSteps] = useState<FormStep[]>([{ description: '' }])
+  const [steps, setSteps] = useState<RecipeStep[]>([{ id: createStepId(), description: '' }])
   const [saving, setSaving] = useState(false)
 
   function updateIngredient(index: number, field: keyof FormIngredient, value: string) {
@@ -48,22 +46,6 @@ export default function AddRecipePage() {
 
   function removeIngredient(index: number) {
     setIngredients(prev => prev.filter((_, i) => i !== index))
-  }
-
-  function updateStep(index: number, value: string) {
-    setSteps(prev => {
-      const next = [...prev]
-      next[index] = { description: value }
-      return next
-    })
-  }
-
-  function addStep() {
-    setSteps(prev => [...prev, { description: '' }])
-  }
-
-  function removeStep(index: number) {
-    setSteps(prev => prev.filter((_, i) => i !== index))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -179,23 +161,11 @@ export default function AddRecipePage() {
         <Button type="button" variant="outline" size="sm" onClick={addIngredient}>+ 材料を追加</Button>
       </section>
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">作り方</h2>
-        {steps.map((step, i) => (
-          <div key={i} className="mb-2 flex items-start gap-2">
-            <span className="min-w-6 pt-1.5 text-sm">{i + 1}.</span>
-            <textarea
-              value={step.description}
-              onChange={e => updateStep(i, e.target.value)}
-              rows={2}
-              placeholder={`手順 ${i + 1}`}
-              className="flex w-full flex-1 rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <Button type="button" variant="ghost" size="sm" onClick={() => removeStep(i)}>削除</Button>
-          </div>
-        ))}
-        <Button type="button" variant="outline" size="sm" onClick={addStep}>+ 手順を追加</Button>
-      </section>
+      <RecipeStepsEditor
+        steps={steps}
+        onStepsChange={setSteps}
+        stepPlaceholder={i => `手順 ${i + 1}`}
+      />
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={saving}>

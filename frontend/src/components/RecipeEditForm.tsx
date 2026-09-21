@@ -5,6 +5,8 @@ import { updateRecipe } from '../api'
 import type { RecipeDetail } from '../api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import RecipeStepsEditor, { createStepId } from '@/components/RecipeStepsEditor'
+import type { RecipeStep } from '@/components/RecipeStepsEditor'
 
 interface EditIngredient {
   group_name: string
@@ -14,16 +16,12 @@ interface EditIngredient {
   note: string
 }
 
-interface EditStep {
-  description: string
-}
-
 interface EditState {
   name: string
   source_url: string
   servings: string
   ingredients: EditIngredient[]
-  steps: EditStep[]
+  steps: RecipeStep[]
 }
 
 function recipeToEditState(recipe: RecipeDetail): EditState {
@@ -38,7 +36,7 @@ function recipeToEditState(recipe: RecipeDetail): EditState {
       unit: ing.unit ?? '',
       note: ing.note ?? '',
     })),
-    steps: recipe.steps.map(step => ({ description: step.description ?? '' })),
+    steps: recipe.steps.map(step => ({ id: createStepId(), description: step.description ?? '' })),
   }
 }
 
@@ -117,22 +115,6 @@ export default function RecipeEditForm({
 
   function removeIngredient(index: number) {
     setEditState(prev => ({ ...prev, ingredients: prev.ingredients.filter((_, i) => i !== index) }))
-  }
-
-  function updateStep(index: number, value: string) {
-    setEditState(prev => {
-      const steps = [...prev.steps]
-      steps[index] = { description: value }
-      return { ...prev, steps }
-    })
-  }
-
-  function addStep() {
-    setEditState(prev => ({ ...prev, steps: [...prev.steps, { description: '' }] }))
-  }
-
-  function removeStep(index: number) {
-    setEditState(prev => ({ ...prev, steps: prev.steps.filter((_, i) => i !== index) }))
   }
 
   return (
@@ -233,22 +215,10 @@ export default function RecipeEditForm({
         <Button variant="outline" size="sm" onClick={addIngredient}>+ 材料を追加</Button>
       </section>
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">作り方</h2>
-        {editState.steps.map((step, i) => (
-          <div key={i} className="mb-2 flex items-start gap-2">
-            <span className="min-w-6 pt-1.5 text-sm">{i + 1}.</span>
-            <textarea
-              value={step.description}
-              onChange={e => updateStep(i, e.target.value)}
-              rows={2}
-              className="flex w-full flex-1 rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <Button variant="ghost" size="sm" onClick={() => removeStep(i)}>削除</Button>
-          </div>
-        ))}
-        <Button variant="outline" size="sm" onClick={addStep}>+ 手順を追加</Button>
-      </section>
+      <RecipeStepsEditor
+        steps={editState.steps}
+        onStepsChange={steps => updateField('steps', steps)}
+      />
     </article>
   )
 }
