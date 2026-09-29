@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { ChangeEvent } from 'react'
 import { X } from 'lucide-react'
-import { updateRecipe } from '../api'
-import type { RecipeDetail } from '../api'
+import { updateRecipe, updateRecipeCategories, getCategories } from '../api'
+import type { RecipeDetail, Category } from '../api'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import RecipeStepsEditor, { createStepId } from '@/components/RecipeStepsEditor'
@@ -65,6 +66,21 @@ export default function RecipeEditForm({
 }: RecipeEditFormProps) {
   const [editState, setEditState] = useState<EditState>(() => recipeToEditState(recipe))
   const [saving, setSaving] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>(() => recipe.categories?.map(c => c.id) ?? [])
+
+  useEffect(() => {
+    getCategories().then(setCategories).catch(() => {})
+  }, [])
+
+  function isCategoriesChanged() {
+    const initial = new Set(recipe.categories?.map(c => c.id) ?? [])
+    return initial.size !== selectedCategoryIds.length || selectedCategoryIds.some(id => !initial.has(id))
+  }
+
+  function toggleCategory(id: number) {
+    setSelectedCategoryIds(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id])
+  }
 
   async function saveEditing() {
     setSaving(true)
@@ -86,7 +102,12 @@ export default function RecipeEditForm({
           description: step.description,
         })),
       })
-      onSaved(updated)
+      if (isCategoriesChanged()) {
+        const categorized = await updateRecipeCategories(Number(recipeId), selectedCategoryIds)
+        onSaved({ ...updated, categories: categorized.categories })
+      } else {
+        onSaved(updated)
+      }
     } catch {
       alert('保存に失敗しました')
     } finally {
@@ -174,6 +195,23 @@ export default function RecipeEditForm({
           className="w-24"
         />
       </label>
+
+      <section>
+        <h2 className="mb-1 text-lg font-semibold">カテゴリ</h2>
+        <p className="mb-3 text-xs text-muted-foreground">カテゴリを変更すると、以後このレシピは自動分類されなくなります</p>
+        <div className="flex flex-wrap gap-1.5">
+          {categories.map(c => (
+            <Badge
+              key={c.id}
+              variant={selectedCategoryIds.includes(c.id) ? 'default' : 'secondary'}
+              onClick={() => toggleCategory(c.id)}
+              className="cursor-pointer rounded-full"
+            >
+              {c.name}
+            </Badge>
+          ))}
+        </div>
+      </section>
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">材料</h2>

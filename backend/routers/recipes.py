@@ -3,11 +3,17 @@ from bs4 import BeautifulSoup
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from category_ai import (
+    CategoryClassificationError,
+    build_recipe_classification_text,
+    classify_categories,
+)
 from db import repo
 from ingredient_filter import is_main_ingredient
 from models import (
     IngredientCreate,
     Recipe,
+    RecipeCategoriesUpdate,
     RecipeCreate,
     RecipeDetail,
     RecipeUpdate,
@@ -25,9 +31,25 @@ class RecipeFromUrlRequest(BaseModel):
 router = APIRouter()
 
 
+def _auto_classify_and_set(recipe: RecipeDetail) -> None:
+    """例外は握りつぶし、レシピ保存自体は失敗させない。"""
+    try:
+        categories = repo.list_categories()
+        text = build_recipe_classification_text(
+            recipe.name or "",
+            [ing.name for ing in recipe.ingredients if ing.name],
+            [s.description for s in recipe.steps if s.description],
+        )
+        matched_names = classify_categories(text, [c.name for c in categories])
+        name_to_id = {c.name: c.id for c in categories}
+        repo.set_recipe_categories(recipe.id, [name_to_id[n] for n in matched_names], source="ai")
+    except CategoryClassificationError:
+        pass
+
+
 @router.get("/api/recipes", response_model=list[Recipe])
-def search_recipes(q: str = Query(default="")):
-    return repo.search(q)
+def search_recipes(q: str = Query(default=""), category_id: list[int] = Query(default=[])):
+    return repo.search(q, category_ids=category_id or None)
 
 
 @router.post("/api/ai/recipes/from-url", response_model=RecipeDetail)
@@ -84,12 +106,16 @@ def create_recipe_from_url(
         steps=steps,
     )
 
-    return repo.create(recipe_data, created_by=username)
+    created = repo.create(recipe_data, created_by=username)
+    _auto_classify_and_set(created)
+    return repo.get_by_id(created.id)
 
 
 @router.post("/api/recipes", response_model=RecipeDetail, status_code=201)
 def create_recipe(body: RecipeCreate, username: str = Depends(get_current_username)):
-    return repo.create(body, created_by=username)
+    created = repo.create(body, created_by=username)
+    _auto_classify_and_set(created)
+    return repo.get_by_id(created.id)
 
 
 @router.get("/api/recipes/{id}", response_model=RecipeDetail)
@@ -128,8 +154,26 @@ def update_recipe(id: int, body: RecipeUpdate, username: str = Depends(get_curre
         raise HTTPException(status_code=404, detail="Recipe not found")
     if existing.username is not None and existing.username != username:
         raise HTTPException(status_code=403, detail="このレシピを編集する権限がありません")
-    recipe = repo.update(id, body)
-    return recipe
+    updated = repo.update(id, body)
+    if not repo.is_categories_locked(id):
+        _auto_classify_and_set(updated)
+    return repo.get_by_id(id)
+
+
+@router.put("/api/recipes/{id}/categories", response_model=RecipeDetail)
+def update_recipe_categories(
+    id: int, body: RecipeCategoriesUpdate, username: str = Depends(get_current_username)
+):
+    existing = repo.get_by_id(id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    if existing.username is not None and existing.username != username:
+        raise HTTPException(status_code=403, detail="このレシピを編集する権限がありません")
+    valid_ids = {c.id for c in repo.list_categories()}
+    if any(cid not in valid_ids for cid in body.category_ids):
+        raise HTTPException(status_code=422, detail="存在しないカテゴリが指定されています")
+    repo.set_recipe_categories(id, body.category_ids, source="manual")
+    return repo.get_by_id(id)
 
 
 @router.delete("/api/recipes/{id}", status_code=204)

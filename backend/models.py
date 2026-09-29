@@ -19,6 +19,16 @@ class Step(BaseModel):
     description: str | None = None
 
 
+class Category(BaseModel):
+    id: int
+    name: str
+    sort_order: int
+
+
+class RecipeCategoriesUpdate(BaseModel):
+    category_ids: list[int]
+
+
 class Recipe(BaseModel):
     id: int | None = None
     name: str | None = None
@@ -28,6 +38,7 @@ class Recipe(BaseModel):
     image_path: str | None = None
     username: str | None = None
     ingredient_names: list[str] = []
+    categories: list[Category] = []
 
 
 class RecipeDetail(Recipe):

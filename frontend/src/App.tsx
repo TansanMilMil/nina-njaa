@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed, Sparkles, LogIn, FilePen } from 'lucide-react'
+import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed, Sparkles, LogIn, FilePen, Tags } from 'lucide-react'
 import SearchPage from './pages/SearchPage'
 import RecipePage from './pages/RecipePage'
 import BookmarksPage from './pages/BookmarksPage'
@@ -12,8 +12,8 @@ import AddRecipePage from './pages/AddRecipePage'
 import LoginPage from './LoginPage'
 import ImportFromUrl from './components/ImportFromUrl'
 import { Button } from '@/components/ui/button'
-import { login, logout, checkAuth } from './api'
-import { Toaster } from 'sonner'
+import { login, logout, checkAuth, reclassifyCategories } from './api'
+import { Toaster, toast } from 'sonner'
 import { UserContext } from './contexts/UserContext'
 
 export default function App() {
@@ -25,6 +25,7 @@ export default function App() {
   const [importOpen, setImportOpen] = useState(false)
   const [addChoiceOpen, setAddChoiceOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [reclassifying, setReclassifying] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -103,6 +104,21 @@ export default function App() {
     setImportOpen(false)
   }, [])
 
+  const handleReclassifyCategories = async () => {
+    setMenuOpen(false)
+    setReclassifying(true)
+    try {
+      const result = await reclassifyCategories()
+      toast.success(
+        `カテゴリを再分類しました（${result.reclassified}件更新・${result.skipped_locked}件スキップ・${result.failed}件失敗）`
+      )
+    } catch {
+      toast.error('カテゴリの一括分類に失敗しました')
+    } finally {
+      setReclassifying(false)
+    }
+  }
+
   if (authLoading) {
     return null
   }
@@ -164,6 +180,15 @@ export default function App() {
                           <UtensilsCrossed className="h-4 w-4" />
                           料理記録
                         </Link>
+                        <button
+                          type="button"
+                          onClick={handleReclassifyCategories}
+                          disabled={reclassifying}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted disabled:opacity-50"
+                        >
+                          <Tags className="h-4 w-4" />
+                          {reclassifying ? '分類中...' : 'カテゴリを一括分類'}
+                        </button>
                         <div className="border-t" />
                         <button
                           type="button"

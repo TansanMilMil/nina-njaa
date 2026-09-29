@@ -19,7 +19,16 @@ def _row_to_recipe(row: sqlite3.Row) -> Recipe:
 
 
 class _RecipeCRUDMixin:
-    def search(self: _ConnectionProvider, q: str) -> list[Recipe]:
+    def search(self, q: str, category_ids: list[int] | None = None) -> list[Recipe]:
+        category_filter = ""
+        category_params: tuple[int, ...] = ()
+        if category_ids:
+            category_filter = (
+                "r.id IN (SELECT recipe_id FROM recipe_categories WHERE category_id IN ("
+                + ", ".join("?" for _ in category_ids)
+                + "))"
+            )
+            category_params = tuple(category_ids)
         with self._connect() as con:
             if q:
                 tokens = [t for t in re.split(r'[ 　]+', q.strip()) if t]
@@ -44,26 +53,32 @@ class _RecipeCRUDMixin:
                             ORDER BY i2.sort_order) AS ingredient_names_concat
                     FROM recipes r
                     LEFT JOIN ingredients i ON i.recipe_id = r.id
-                    WHERE {conditions}
+                    WHERE {conditions}{f" AND {category_filter}" if category_filter else ""}
                     LIMIT 100
                     """,
-                    params,
+                    params + category_params,
                 ).fetchall()
             else:
                 rows = con.execute(
-                    """
+                    f"""
                     SELECT r.*,
                            (SELECT GROUP_CONCAT(i2.name, '|||')
                             FROM ingredients i2
                             WHERE i2.recipe_id = r.id
                             ORDER BY i2.sort_order) AS ingredient_names_concat
                     FROM recipes r
+                    {f"WHERE {category_filter}" if category_filter else ""}
                     LIMIT 100
-                    """
+                    """,
+                    category_params,
                 ).fetchall()
-        return [_row_to_recipe(row) for row in rows]
+        recipes = [_row_to_recipe(row) for row in rows]
+        categories_map = self.get_categories_map([r.id for r in recipes])
+        for recipe in recipes:
+            recipe.categories = categories_map.get(recipe.id, [])
+        return recipes
 
-    def get_by_id(self: _ConnectionProvider, id: int) -> RecipeDetail | None:
+    def get_by_id(self, id: int) -> RecipeDetail | None:
         with self._connect() as con:
             recipe_row = con.execute(
                 "SELECT * FROM recipes WHERE id = ?", (id,)
@@ -85,6 +100,7 @@ class _RecipeCRUDMixin:
             ingredient_names=[row["name"] for row in ingredient_rows],
             ingredients=[Ingredient(**dict(row)) for row in ingredient_rows],
             steps=[Step(**dict(row)) for row in step_rows],
+            categories=self.get_categories_map([id]).get(id, []),
         )
 
     def get_by_url(self: _ConnectionProvider, url: str) -> Recipe | None:
@@ -154,5 +170,6 @@ class _RecipeCRUDMixin:
             con.execute("DELETE FROM ingredients WHERE recipe_id = ?", (id,))
             con.execute("DELETE FROM steps WHERE recipe_id = ?", (id,))
             con.execute("DELETE FROM recipe_bookmarks WHERE recipe_id = ?", (id,))
+            con.execute("DELETE FROM recipe_categories WHERE recipe_id = ?", (id,))
             con.execute("DELETE FROM recipes WHERE id = ?", (id,))
         return True

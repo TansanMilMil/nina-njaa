@@ -14,6 +14,7 @@ import { useCookLog } from '../hooks/useCookLog'
 import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
 import { useRecipeDetail } from '../hooks/useRecipeDetail'
 import { useRecipeImage } from '../hooks/useRecipeImage'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { useCurrentUser } from '../contexts/UserContext'
@@ -116,6 +117,14 @@ export default function RecipePage() {
             <h1 className="flex-1 text-2xl font-bold">{recipe.name}</h1>
             {canEdit && <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>編集</Button>}
           </div>
+
+          {recipe.categories && recipe.categories.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {recipe.categories.map(c => (
+                <Badge key={c.id} variant="secondary" className="rounded-full">{c.name}</Badge>
+              ))}
+            </div>
+          )}
 
           {currentUsername && (
             <div className="flex flex-col gap-3">

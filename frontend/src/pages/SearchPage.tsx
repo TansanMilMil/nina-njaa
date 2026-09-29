@@ -1,20 +1,27 @@
-import { useState, useEffect, useContext } from 'react'
+import { useState, useEffect, useContext, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { UserContext } from '../contexts/UserContext'
 import SearchBar from '../components/SearchBar'
 import RecipeCard from '../components/RecipeCard'
 import { RecipeCardSkeleton } from '../components/Skeleton'
-import { searchRecipes, getIngredientSuggestions, getRecentViewedRecipes, getCookedLogs } from '../api'
-import type { Recipe } from '../api'
+import { searchRecipes, getIngredientSuggestions, getRecentViewedRecipes, getCookedLogs, getCategories } from '../api'
+import type { Recipe, Category } from '../api'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ChevronUp } from 'lucide-react'
 
+function parseCategoryIds(value: string | null): number[] {
+  if (!value) return []
+  return value.split(',').map(Number).filter(n => Number.isInteger(n) && n > 0)
+}
+
 export default function SearchPage() {
   const currentUsername = useContext(UserContext)
   const [searchParams, setSearchParams] = useSearchParams()
   const q = searchParams.get('q') ?? ''
+  const categoryParam = searchParams.get('category')
+  const selectedCategoryIds = useMemo(() => parseCategoryIds(categoryParam), [categoryParam])
   const [results, setResults] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
@@ -23,6 +30,11 @@ export default function SearchPage() {
   const [loadingRecent, setLoadingRecent] = useState(false)
   const [cookedCountMap, setCookedCountMap] = useState<Map<number, number>>(new Map())
   const [showScrollTop, setShowScrollTop] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+
+  useEffect(() => {
+    getCategories().then(setCategories).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (currentUsername) {
@@ -46,22 +58,32 @@ export default function SearchPage() {
     }
   }, [currentUsername])
 
+  const updateSearchParams = (nextQ: string, nextCategoryIds: number[]) => {
+    const params: Record<string, string> = {}
+    if (nextQ) params.q = nextQ
+    if (nextCategoryIds.length > 0) params.category = nextCategoryIds.join(',')
+    setSearchParams(params)
+  }
+
   const handleChange = (value: string) => {
-    if (value) {
-      setSearchParams({ q: value })
-    } else {
-      setSearchParams({})
-    }
+    updateSearchParams(value, selectedCategoryIds)
+  }
+
+  const toggleCategory = (id: number) => {
+    const next = selectedCategoryIds.includes(id)
+      ? selectedCategoryIds.filter(c => c !== id)
+      : [...selectedCategoryIds, id]
+    updateSearchParams(q, next)
   }
 
   useEffect(() => {
-    if (!q) {
+    if (!q && selectedCategoryIds.length === 0) {
       setResults([])
       return
     }
     let cancelled = false
     setLoading(true)
-    searchRecipes(q).then(data => {
+    searchRecipes(q, selectedCategoryIds).then(data => {
       if (!cancelled) {
         setResults(data)
         setLoading(false)
@@ -70,7 +92,7 @@ export default function SearchPage() {
     return () => {
       cancelled = true
     }
-  }, [q])
+  }, [q, selectedCategoryIds])
 
   useEffect(() => {
     const container = document.querySelector('main')
@@ -82,7 +104,7 @@ export default function SearchPage() {
 
   const scrollToTop = () => document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' })
 
-  const showRecent = q === ''
+  const showRecent = q === '' && selectedCategoryIds.length === 0
 
   return (
     <>
@@ -99,6 +121,20 @@ export default function SearchPage() {
                   className="cursor-pointer rounded-full"
                 >
                   {s}
+                </Badge>
+              ))}
+            </div>
+          )}
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {categories.map(c => (
+                <Badge
+                  key={c.id}
+                  variant={selectedCategoryIds.includes(c.id) ? 'default' : 'secondary'}
+                  onClick={() => toggleCategory(c.id)}
+                  className="cursor-pointer rounded-full"
+                >
+                  {c.name}
                 </Badge>
               ))}
             </div>

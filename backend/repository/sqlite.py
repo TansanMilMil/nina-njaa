@@ -3,6 +3,7 @@ import sqlite3
 
 from kana import to_hiragana, to_reading
 from repository._bookmark import _BookmarkMixin
+from repository._category import _CategoryMixin
 from repository._cooked_log import _CookedLogMixin
 from repository._recipe_crud import _RecipeCRUDMixin
 from repository._view_history import _ViewHistoryMixin
@@ -96,6 +97,40 @@ _SCHEMA_STATEMENTS = (
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_cl_username ON cooked_logs(username)",
+    """
+    CREATE TABLE IF NOT EXISTS categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        sort_order INTEGER NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS recipe_categories (
+        recipe_id INTEGER NOT NULL,
+        category_id INTEGER NOT NULL,
+        source TEXT NOT NULL DEFAULT 'ai',
+        PRIMARY KEY (recipe_id, category_id)
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_rc_recipe_id ON recipe_categories(recipe_id)",
+    "CREATE INDEX IF NOT EXISTS idx_rc_category_id ON recipe_categories(category_id)",
+)
+
+_SEED_CATEGORIES = (
+    "主菜",
+    "副菜",
+    "汁物・スープ",
+    "ご飯もの",
+    "麺類",
+    "鍋料理",
+    "サラダ",
+    "デザート・スイーツ",
+    "パン",
+    "作り置き・常備菜",
+    "和食",
+    "洋食",
+    "中華",
+    "エスニック",
 )
 
 
@@ -104,6 +139,7 @@ class SQLiteRecipeRepository(
     _ViewHistoryMixin,
     _BookmarkMixin,
     _CookedLogMixin,
+    _CategoryMixin,
     RecipeRepositoryBase,
 ):
     def __init__(self, db_path: str):
@@ -128,6 +164,7 @@ class SQLiteRecipeRepository(
                 "ALTER TABLE cooked_logs ADD COLUMN memo TEXT",
                 "ALTER TABLE recipes ADD COLUMN name_reading TEXT",
                 "ALTER TABLE ingredients ADD COLUMN name_reading TEXT",
+                "ALTER TABLE recipes ADD COLUMN categories_locked INTEGER NOT NULL DEFAULT 0",
             ):
                 try:
                     con.execute(migration)
@@ -135,6 +172,14 @@ class SQLiteRecipeRepository(
                     pass
             self._migrate_source_url_nullable(con)
             self._backfill_readings(con)
+            self._seed_categories(con)
+
+    def _seed_categories(self, con: sqlite3.Connection) -> None:
+        for sort_order, name in enumerate(_SEED_CATEGORIES, start=1):
+            con.execute(
+                "INSERT OR IGNORE INTO categories (name, sort_order) VALUES (?, ?)",
+                (name, sort_order),
+            )
 
     def _backfill_readings(self, con: sqlite3.Connection) -> None:
         for row in con.execute("SELECT id, name FROM recipes WHERE name_reading IS NULL").fetchall():
@@ -171,10 +216,14 @@ class SQLiteRecipeRepository(
                 scraped_at TEXT NOT NULL,
                 image_path TEXT,
                 username TEXT,
-                name_reading TEXT
+                name_reading TEXT,
+                categories_locked INTEGER NOT NULL DEFAULT 0
             )
         """)
-        con.execute("INSERT INTO recipes_new SELECT id, name, source_url, servings, scraped_at, image_path, username, name_reading FROM recipes")
+        con.execute(
+            "INSERT INTO recipes_new (id, name, source_url, servings, scraped_at, image_path, username, name_reading, categories_locked) "
+            "SELECT id, name, source_url, servings, scraped_at, image_path, username, name_reading, categories_locked FROM recipes"
+        )
         con.execute("DROP TABLE recipes")
         con.execute("ALTER TABLE recipes_new RENAME TO recipes")
         con.execute("PRAGMA foreign_keys = ON")

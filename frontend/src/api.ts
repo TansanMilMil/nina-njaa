@@ -7,6 +7,13 @@ export interface Recipe {
   image_path?: string | null
   username?: string | null
   ingredient_names?: string[]
+  categories?: Category[]
+}
+
+export interface Category {
+  id: number
+  name: string
+  sort_order: number
 }
 
 export interface Ingredient {
@@ -94,9 +101,16 @@ export async function checkAuth(): Promise<string | null> {
   }
 }
 
-export async function searchRecipes(q: string): Promise<Recipe[]> {
-  const res = await authFetch(`${BASE}/recipes?q=${encodeURIComponent(q)}`)
+export async function searchRecipes(q: string, categoryIds: number[] = []): Promise<Recipe[]> {
+  const params = new URLSearchParams()
+  params.set('q', q)
+  categoryIds.forEach(id => params.append('category_id', String(id)))
+  const res = await authFetch(`${BASE}/recipes?${params.toString()}`)
   return res.json()
+}
+
+export async function getCategories(): Promise<Category[]> {
+  return fetchJsonOr<Category[]>('/categories', [])
 }
 
 export async function getRecipe(id: number): Promise<RecipeDetail> {
@@ -153,8 +167,26 @@ export async function updateRecipe(id: number, data: RecipeUpdatePayload): Promi
   return res.json()
 }
 
+export async function updateRecipeCategories(id: number, categoryIds: number[]): Promise<RecipeDetail> {
+  const res = await authFetch(`${BASE}/recipes/${id}/categories`, jsonInit('PUT', { category_ids: categoryIds }))
+  assertOk(res, 'カテゴリの更新に失敗しました')
+  return res.json()
+}
+
 export async function recordRecipeViewed(id: number): Promise<void> {
   await authFetch(`${BASE}/recipes/${id}/viewed`, { method: 'POST' })
+}
+
+export interface ReclassifyCategoriesResult {
+  reclassified: number
+  skipped_locked: number
+  failed: number
+}
+
+export async function reclassifyCategories(): Promise<ReclassifyCategoriesResult> {
+  const res = await authFetch(`${BASE}/admin/recipes/reclassify-categories`, { method: 'POST' })
+  assertOk(res, 'カテゴリの一括分類に失敗しました')
+  return res.json()
 }
 
 export async function deleteRecipe(id: number): Promise<void> {
