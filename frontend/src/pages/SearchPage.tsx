@@ -16,12 +16,17 @@ function parseCategoryIds(value: string | null): number[] {
   return value.split(',').map(Number).filter(n => Number.isInteger(n) && n > 0)
 }
 
+function splitTokens(value: string): string[] {
+  return value.split(/[ 　]+/).filter(Boolean)
+}
+
 export default function SearchPage() {
   const currentUsername = useContext(UserContext)
   const [searchParams, setSearchParams] = useSearchParams()
   const q = searchParams.get('q') ?? ''
   const categoryParam = searchParams.get('category')
   const selectedCategoryIds = useMemo(() => parseCategoryIds(categoryParam), [categoryParam])
+  const queryTokens = useMemo(() => splitTokens(q), [q])
   const [results, setResults] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<string[]>([])
@@ -67,6 +72,13 @@ export default function SearchPage() {
 
   const handleChange = (value: string) => {
     updateSearchParams(value, selectedCategoryIds)
+  }
+
+  const toggleSuggestion = (name: string) => {
+    const next = queryTokens.includes(name)
+      ? queryTokens.filter(t => t !== name)
+      : [...queryTokens, name]
+    handleChange(next.join(' '))
   }
 
   const toggleCategory = (id: number) => {
@@ -118,16 +130,20 @@ export default function SearchPage() {
                 よく検索する食材
               </span>
               <div className="flex flex-wrap gap-1.5">
-                {suggestions.map(s => (
-                  <Badge
-                    key={s}
-                    variant={q === s ? 'default' : 'secondary'}
-                    onClick={() => handleChange(s)}
-                    className="cursor-pointer rounded-full"
-                  >
-                    {s}
-                  </Badge>
-                ))}
+                {suggestions.map(s => {
+                  const selected = queryTokens.includes(s)
+                  return (
+                    <Badge
+                      key={s}
+                      variant={selected ? 'default' : 'secondary'}
+                      onClick={() => toggleSuggestion(s)}
+                      className="cursor-pointer gap-1 rounded-full"
+                    >
+                      {selected && <Check className="h-3 w-3" />}
+                      {s}
+                    </Badge>
+                  )
+                })}
               </div>
             </div>
           )}

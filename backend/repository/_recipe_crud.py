@@ -34,25 +34,25 @@ class _RecipeCRUDMixin:
                 tokens = [t for t in re.split(r'[ 　]+', q.strip()) if t]
                 conditions = " AND ".join(
                     "("
-                    "to_hiragana(r.name) LIKE to_hiragana(?) OR to_hiragana(i.name) LIKE to_hiragana(?) OR r.source_url LIKE ? "
-                    "OR r.name_reading LIKE ? OR i.name_reading LIKE ?"
+                    "to_hiragana(r.name) LIKE to_hiragana(?) OR r.source_url LIKE ? OR r.name_reading LIKE ? "
+                    "OR EXISTS (SELECT 1 FROM ingredients i WHERE i.recipe_id = r.id "
+                    "AND (to_hiragana(i.name) LIKE to_hiragana(?) OR i.name_reading LIKE ?))"
                     ")"
                     for _ in tokens
                 )
                 params = tuple(
                     p
                     for t in tokens
-                    for p in (f"%{t}%", f"%{t}%", f"%{t}%", f"%{to_reading(t)}%", f"%{to_reading(t)}%")
+                    for p in (f"%{t}%", f"%{t}%", f"%{to_reading(t)}%", f"%{t}%", f"%{to_reading(t)}%")
                 )
                 rows = con.execute(
                     f"""
-                    SELECT DISTINCT r.*,
+                    SELECT r.*,
                            (SELECT GROUP_CONCAT(i2.name, '|||')
                             FROM ingredients i2
                             WHERE i2.recipe_id = r.id
                             ORDER BY i2.sort_order) AS ingredient_names_concat
                     FROM recipes r
-                    LEFT JOIN ingredients i ON i.recipe_id = r.id
                     WHERE {conditions}{f" AND {category_filter}" if category_filter else ""}
                     LIMIT 100
                     """,
