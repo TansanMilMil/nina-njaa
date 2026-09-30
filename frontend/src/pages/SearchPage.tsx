@@ -9,7 +9,7 @@ import type { Recipe, Category } from '../api'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ChevronUp } from 'lucide-react'
+import { ChevronUp, History, Tag, Check } from 'lucide-react'
 
 function parseCategoryIds(value: string | null): number[] {
   if (!value) return []
@@ -112,31 +112,47 @@ export default function SearchPage() {
         <div className="flex flex-col gap-2">
           <SearchBar value={q} onChange={handleChange} />
           {suggestions.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {suggestions.map(s => (
-                <Badge
-                  key={s}
-                  variant={q === s ? 'default' : 'secondary'}
-                  onClick={() => handleChange(s)}
-                  className="cursor-pointer rounded-full"
-                >
-                  {s}
-                </Badge>
-              ))}
+            <div className="flex flex-col gap-1">
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <History className="h-3 w-3" />
+                よく検索する食材
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {suggestions.map(s => (
+                  <Badge
+                    key={s}
+                    variant={q === s ? 'default' : 'secondary'}
+                    onClick={() => handleChange(s)}
+                    className="cursor-pointer rounded-full"
+                  >
+                    {s}
+                  </Badge>
+                ))}
+              </div>
             </div>
           )}
           {categories.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {categories.map(c => (
-                <Badge
-                  key={c.id}
-                  variant={selectedCategoryIds.includes(c.id) ? 'default' : 'secondary'}
-                  onClick={() => toggleCategory(c.id)}
-                  className="cursor-pointer rounded-full"
-                >
-                  {c.name}
-                </Badge>
-              ))}
+            <div className="flex flex-col gap-1">
+              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Tag className="h-3 w-3" />
+                カテゴリ
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {categories.map(c => {
+                  const selected = selectedCategoryIds.includes(c.id)
+                  return (
+                    <Badge
+                      key={c.id}
+                      variant={selected ? 'default' : 'outline'}
+                      onClick={() => toggleCategory(c.id)}
+                      className="cursor-pointer gap-1 rounded-md border-dashed"
+                    >
+                      {selected && <Check className="h-3 w-3" />}
+                      {c.name}
+                    </Badge>
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>
