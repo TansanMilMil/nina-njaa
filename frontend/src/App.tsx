@@ -12,7 +12,8 @@ import AddRecipePage from './pages/AddRecipePage'
 import LoginPage from './LoginPage'
 import ImportFromUrl from './components/ImportFromUrl'
 import { Button } from '@/components/ui/button'
-import { login, logout, checkAuth, reclassifyCategories } from './api'
+import { login, logout, checkAuth, startReclassifyCategories, getReclassifyCategoriesStatus } from './api'
+import type { ReclassifyCategoriesStatus } from './api'
 import { Toaster, toast } from 'sonner'
 import { UserContext } from './contexts/UserContext'
 
@@ -25,7 +26,8 @@ export default function App() {
   const [importOpen, setImportOpen] = useState(false)
   const [addChoiceOpen, setAddChoiceOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [reclassifying, setReclassifying] = useState(false)
+  const [reclassifyProgress, setReclassifyProgress] = useState<ReclassifyCategoriesStatus | null>(null)
+  const reclassifying = reclassifyProgress !== null
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -104,18 +106,48 @@ export default function App() {
     setImportOpen(false)
   }, [])
 
+  const pollReclassifyStatus = useCallback(async () => {
+    try {
+      const status = await getReclassifyCategoriesStatus()
+      if (status.status === 'running') {
+        setReclassifyProgress(status)
+        return
+      }
+      setReclassifyProgress(null)
+      if (status.status === 'completed') {
+        toast.success(
+          `カテゴリを再分類しました（${status.reclassified}件更新・${status.skipped_locked}件スキップ・${status.failed}件失敗）`
+        )
+      } else if (status.status === 'failed') {
+        toast.error('カテゴリの一括分類に失敗しました')
+      }
+    } catch {
+      setReclassifyProgress(null)
+      toast.error('カテゴリの一括分類の状態取得に失敗しました')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!currentUsername) return
+    getReclassifyCategoriesStatus()
+      .then(status => {
+        if (status.status === 'running') setReclassifyProgress(status)
+      })
+      .catch(() => {})
+  }, [currentUsername])
+
+  useEffect(() => {
+    if (!reclassifying) return
+    const timer = window.setInterval(pollReclassifyStatus, 2000)
+    return () => window.clearInterval(timer)
+  }, [reclassifying, pollReclassifyStatus])
+
   const handleReclassifyCategories = async () => {
     setMenuOpen(false)
-    setReclassifying(true)
     try {
-      const result = await reclassifyCategories()
-      toast.success(
-        `カテゴリを再分類しました（${result.reclassified}件更新・${result.skipped_locked}件スキップ・${result.failed}件失敗）`
-      )
+      setReclassifyProgress(await startReclassifyCategories())
     } catch {
-      toast.error('カテゴリの一括分類に失敗しました')
-    } finally {
-      setReclassifying(false)
+      toast.error('カテゴリの一括分類の開始に失敗しました')
     }
   }
 
@@ -139,7 +171,9 @@ export default function App() {
                   className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground"
                 >
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span className="hidden sm:inline">カテゴリ分類中...</span>
+                  <span className="hidden sm:inline">
+                    カテゴリ分類中 {reclassifyProgress.processed}/{reclassifyProgress.total}
+                  </span>
                   <span className="sr-only sm:hidden">カテゴリ分類中</span>
                 </div>
               )}

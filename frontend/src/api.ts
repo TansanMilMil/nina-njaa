@@ -177,15 +177,24 @@ export async function recordRecipeViewed(id: number): Promise<void> {
   await authFetch(`${BASE}/recipes/${id}/viewed`, { method: 'POST' })
 }
 
-export interface ReclassifyCategoriesResult {
+export interface ReclassifyCategoriesStatus {
+  status: 'idle' | 'running' | 'completed' | 'failed'
+  total: number
+  processed: number
   reclassified: number
   skipped_locked: number
   failed: number
 }
 
-export async function reclassifyCategories(): Promise<ReclassifyCategoriesResult> {
+export async function startReclassifyCategories(): Promise<ReclassifyCategoriesStatus> {
   const res = await authFetch(`${BASE}/admin/recipes/reclassify-categories`, { method: 'POST' })
-  assertOk(res, 'カテゴリの一括分類に失敗しました')
+  assertOk(res, 'カテゴリの一括分類の開始に失敗しました')
+  return res.json()
+}
+
+export async function getReclassifyCategoriesStatus(): Promise<ReclassifyCategoriesStatus> {
+  const res = await authFetch(`${BASE}/admin/recipes/reclassify-categories/status`)
+  assertOk(res, 'カテゴリの一括分類の状態取得に失敗しました')
   return res.json()
 }
 
