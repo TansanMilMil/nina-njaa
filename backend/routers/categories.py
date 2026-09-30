@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends
 
 from category_ai import (
@@ -10,6 +12,7 @@ from models import Category
 from routers.auth import get_current_username
 
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -40,7 +43,8 @@ def reclassify_all_categories(username: str = Depends(get_current_username)):
         )
         try:
             matched_names = classify_categories(text, category_names)
-        except CategoryClassificationError:
+        except CategoryClassificationError as e:
+            logger.warning("recipe_id=%s のカテゴリ分類に失敗: %s", recipe_id, e)
             failed += 1
             continue
         repo.set_recipe_categories(recipe_id, [name_to_id[n] for n in matched_names], source="ai")
