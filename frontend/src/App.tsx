@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed, Sparkles, LogIn, FilePen, Tags } from 'lucide-react'
+import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed, Sparkles, LogIn, FilePen, Tags, Loader2 } from 'lucide-react'
 import SearchPage from './pages/SearchPage'
 import RecipePage from './pages/RecipePage'
 import BookmarksPage from './pages/BookmarksPage'
@@ -133,6 +133,16 @@ export default function App() {
               <span className="text-2xl font-bold text-primary">Ninanjaa</span>
             </Link>
             <div className="flex items-center gap-2">
+              {reclassifying && (
+                <div
+                  role="status"
+                  className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground"
+                >
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span className="hidden sm:inline">カテゴリ分類中...</span>
+                  <span className="sr-only sm:hidden">カテゴリ分類中</span>
+                </div>
+              )}
               {currentUsername ? (
                 <>
                   <Button
