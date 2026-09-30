@@ -23,12 +23,13 @@ class _RecipeCRUDMixin:
         category_filter = ""
         category_params: tuple[int, ...] = ()
         if category_ids:
+            unique_ids = tuple(dict.fromkeys(category_ids))
             category_filter = (
                 "r.id IN (SELECT recipe_id FROM recipe_categories WHERE category_id IN ("
-                + ", ".join("?" for _ in category_ids)
-                + "))"
+                + ", ".join("?" for _ in unique_ids)
+                + ") GROUP BY recipe_id HAVING COUNT(DISTINCT category_id) = ?)"
             )
-            category_params = tuple(category_ids)
+            category_params = (*unique_ids, len(unique_ids))
         with self._connect() as con:
             if q:
                 tokens = [t for t in re.split(r'[ 　]+', q.strip()) if t]
