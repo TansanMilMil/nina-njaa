@@ -1,14 +1,13 @@
 import sqlite3
-from datetime import datetime, timezone
-from typing import Protocol
 
 from models import Recipe
-
-from repository._recipe_crud import _row_to_recipe
-
-
-class _ConnectionProvider(Protocol):
-    def _connect(self) -> sqlite3.Connection: ...
+from repository._common import (
+    RECIPE_SUMMARY_SELECT,
+    ConnectionProvider,
+    now_iso,
+    placeholders,
+    row_to_recipe,
+)
 
 
 def _trim_history(con: sqlite3.Connection, table: str, username: str, keep: int = 1000) -> None:
@@ -27,13 +26,26 @@ def _trim_history(con: sqlite3.Connection, table: str, username: str, keep: int 
     )
 
 
+def _top_viewed_ingredients(con: sqlite3.Connection, username: str, order_by: str, limit: int) -> list[str]:
+    rows = con.execute(
+        f"""
+        SELECT ingredient_name
+        FROM viewed_ingredients
+        WHERE username = ?
+        GROUP BY ingredient_name
+        ORDER BY {order_by}
+        LIMIT ?
+        """,
+        (username, limit),
+    ).fetchall()
+    return [row["ingredient_name"] for row in rows]
+
+
 class _ViewHistoryMixin:
-    def record_viewed_ingredients(
-        self: _ConnectionProvider, username: str, ingredient_names: list[str]
-    ) -> None:
+    def record_viewed_ingredients(self: ConnectionProvider, username: str, ingredient_names: list[str]) -> None:
         if not ingredient_names:
             return
-        viewed_at = datetime.now(timezone.utc).isoformat()
+        viewed_at = now_iso()
         with self._connect() as con:
             con.executemany(
                 "INSERT INTO viewed_ingredients (username, ingredient_name, viewed_at) VALUES (?, ?, ?)",
@@ -41,76 +53,43 @@ class _ViewHistoryMixin:
             )
             _trim_history(con, "viewed_ingredients", username)
 
-    def record_viewed_recipe(self: _ConnectionProvider, username: str, recipe_id: int) -> None:
-        viewed_at = datetime.now(timezone.utc).isoformat()
+    def record_viewed_recipe(self: ConnectionProvider, username: str, recipe_id: int) -> None:
         with self._connect() as con:
             con.execute(
                 "INSERT INTO viewed_recipes (username, recipe_id, viewed_at) VALUES (?, ?, ?)",
-                (username, recipe_id, viewed_at),
+                (username, recipe_id, now_iso()),
             )
             _trim_history(con, "viewed_recipes", username)
 
-    def get_recent_viewed_recipes(
-        self: _ConnectionProvider, username: str, limit: int = 30
-    ) -> list[Recipe]:
+    def get_recent_viewed_recipes(self: ConnectionProvider, username: str, limit: int = 30) -> list[Recipe]:
         with self._connect() as con:
-            id_rows = con.execute(
-                """
-                SELECT recipe_id
-                FROM viewed_recipes
-                WHERE username = ?
-                GROUP BY recipe_id
-                ORDER BY MAX(id) DESC
-                LIMIT ?
-                """,
-                (username, limit),
-            ).fetchall()
-            recipe_ids = [row["recipe_id"] for row in id_rows]
-            recipes = []
-            for recipe_id in recipe_ids:
-                row = con.execute(
+            recipe_ids = [
+                row["recipe_id"]
+                for row in con.execute(
                     """
-                    SELECT r.*,
-                           (SELECT GROUP_CONCAT(i.name, '|||')
-                            FROM ingredients i
-                            WHERE i.recipe_id = r.id
-                            ORDER BY i.sort_order) AS ingredient_names_concat
-                    FROM recipes r WHERE r.id = ?
+                    SELECT recipe_id
+                    FROM viewed_recipes
+                    WHERE username = ?
+                    GROUP BY recipe_id
+                    ORDER BY MAX(id) DESC
+                    LIMIT ?
                     """,
-                    (recipe_id,),
-                ).fetchone()
-                if row:
-                    recipes.append(_row_to_recipe(row))
-        return recipes
-
-    def get_recent_viewed_ingredients(
-        self: _ConnectionProvider, username: str, limit: int = 100
-    ) -> list[str]:
-        with self._connect() as con:
+                    (username, limit),
+                ).fetchall()
+            ]
+            if not recipe_ids:
+                return []
             rows = con.execute(
-                """
-                SELECT ingredient_name
-                FROM viewed_ingredients
-                WHERE username = ?
-                GROUP BY ingredient_name
-                ORDER BY MAX(id) DESC
-                LIMIT ?
-                """,
-                (username, limit),
+                f"{RECIPE_SUMMARY_SELECT} WHERE r.id IN ({placeholders(recipe_ids)})",
+                tuple(recipe_ids),
             ).fetchall()
-        return [row["ingredient_name"] for row in rows]
+        recipes_by_id = {row["id"]: row_to_recipe(row) for row in rows}
+        return [recipes_by_id[rid] for rid in recipe_ids if rid in recipes_by_id]
 
-    def get_ingredient_suggestions(self: _ConnectionProvider, username: str) -> list[str]:
+    def get_recent_viewed_ingredients(self: ConnectionProvider, username: str, limit: int = 100) -> list[str]:
         with self._connect() as con:
-            rows = con.execute(
-                """
-                SELECT ingredient_name
-                FROM viewed_ingredients
-                WHERE username = ?
-                GROUP BY ingredient_name
-                ORDER BY COUNT(*) DESC, MAX(id) DESC
-                LIMIT 20
-                """,
-                (username,),
-            ).fetchall()
-        return [row["ingredient_name"] for row in rows]
+            return _top_viewed_ingredients(con, username, "MAX(id) DESC", limit)
+
+    def get_ingredient_suggestions(self: ConnectionProvider, username: str) -> list[str]:
+        with self._connect() as con:
+            return _top_viewed_ingredients(con, username, "COUNT(*) DESC, MAX(id) DESC", 20)

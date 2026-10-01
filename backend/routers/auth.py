@@ -5,10 +5,8 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from jose import JWTError, jwt
 from pydantic import BaseModel
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
-limiter = Limiter(key_func=get_remote_address)
+from rate_limit import limiter
 
 BASIC_AUTH_USER = os.environ.get("NINA_NJAA_BASIC_AUTH_USER")
 BASIC_AUTH_PASS = os.environ.get("NINA_NJAA_BASIC_AUTH_PASS")
@@ -21,6 +19,7 @@ if not JWT_SECRET_KEY:
     raise RuntimeError("環境変数 NINA_NJAA_JWT_SECRET_KEY を設定してください")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = int(os.environ.get("NINA_NJAA_JWT_EXPIRE_DAYS", "7"))
+AUTH_COOKIE = "auth_token"
 SECURE_COOKIE = os.environ.get("NINA_NJAA_SECURE_COOKIE", "true").lower() == "true"
 
 
@@ -31,7 +30,7 @@ def create_access_token(username: str) -> str:
 
 def set_auth_cookie(response: Response, token: str) -> None:
     response.set_cookie(
-        "auth_token",
+        AUTH_COOKIE,
         token,
         httponly=True,
         samesite="strict",
@@ -40,38 +39,32 @@ def set_auth_cookie(response: Response, token: str) -> None:
     )
 
 
-def refresh_auth_cookie(request: Request, response: Response) -> None:
-    """アクティブなユーザーのセッションが有効期限で切れないよう、有効なトークンを毎リクエスト延長する"""
-    token = request.cookies.get("auth_token")
+def _decode_username(token: str | None) -> str | None:
     if not token:
-        return
+        return None
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
     except JWTError:
-        return
-    set_auth_cookie(response, create_access_token(str(payload["sub"])))
+        return None
+    return str(payload["sub"])
 
 
-def get_current_username(request: Request) -> str:
-    token = request.cookies.get("auth_token")
-    if token:
-        try:
-            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-            return str(payload["sub"])
-        except JWTError:
-            pass
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+def refresh_auth_cookie(request: Request, response: Response) -> None:
+    """アクティブなユーザーのセッションが有効期限で切れないよう、有効なトークンを毎リクエスト延長する"""
+    username = _decode_username(request.cookies.get(AUTH_COOKIE))
+    if username is not None:
+        set_auth_cookie(response, create_access_token(username))
 
 
 def get_optional_username(request: Request) -> str | None:
-    token = request.cookies.get("auth_token")
-    if token:
-        try:
-            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-            return str(payload["sub"])
-        except JWTError:
-            pass
-    return None
+    return _decode_username(request.cookies.get(AUTH_COOKIE))
+
+
+def get_current_username(request: Request) -> str:
+    username = get_optional_username(request)
+    if username is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    return username
 
 
 class LoginRequest(BaseModel):
@@ -95,7 +88,7 @@ def login(request: Request, body: LoginRequest, response: Response):
 
 @router.post("/api/auth/logout")
 def logout(response: Response):
-    response.delete_cookie("auth_token", httponly=True, samesite="strict", secure=SECURE_COOKIE)
+    response.delete_cookie(AUTH_COOKIE, httponly=True, samesite="strict", secure=SECURE_COOKIE)
     return {"ok": True}
 
 

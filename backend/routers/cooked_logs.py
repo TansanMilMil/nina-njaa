@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from db import repo
 from models import CookedLogCreate, CookedLogEntry, CookedLogRawEntry
 from routers.auth import get_current_username
+from routers.deps import ensure_recipe_exists
 
 router = APIRouter()
 
@@ -17,8 +18,7 @@ def add_cooked_log(
     log_data: CookedLogCreate,
     username: str = Depends(get_current_username),
 ):
-    if repo.get_by_id(recipe_id) is None:
-        raise HTTPException(status_code=404, detail="Recipe not found")
+    ensure_recipe_exists(recipe_id)
     repo.add_cooked_log(username, recipe_id, log_data.memo)
 
 

@@ -1,45 +1,11 @@
-import json
-import os
-
+import httpx
+from bs4 import BeautifulSoup
 from fastapi import HTTPException
-from openai import OpenAI
 
+from models import IngredientCreate, RecipeCreate, StepCreate
+from openai_chat import chat_json
 
-OPENAI_API_KEY = os.environ.get("NINA_NJAA_OPENAI_API_KEY")
-
-RECIPE_JSON_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string"},
-        "servings": {"type": ["integer", "null"]},
-        "ingredients": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
-                    "quantity": {"type": ["string", "null"]},
-                    "unit": {"type": ["string", "null"]},
-                    "group_name": {"type": ["string", "null"]},
-                    "note": {"type": ["string", "null"]},
-                },
-                "required": ["name"],
-            },
-        },
-        "steps": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "step_number": {"type": "integer"},
-                    "description": {"type": "string"},
-                },
-                "required": ["step_number", "description"],
-            },
-        },
-    },
-    "required": ["name", "ingredients", "steps"],
-}
+_PAGE_TEXT_LIMIT = 8000
 
 SYSTEM_PROMPT = (
     "あなたはレシピ抽出AIです。与えられたウェブページのテキストからレシピ情報を抽出し、"
@@ -74,43 +40,59 @@ SYSTEM_PROMPT = (
 )
 
 
-def extract_recipe_from_text(page_text: str) -> dict:
+def _extract_recipe_from_text(page_text: str) -> dict:
     if len(page_text) > 10000:
-        raise HTTPException(
-            status_code=400, detail="入力テキストが長すぎます（上限10000文字）"
-        )
-    
-    if not OPENAI_API_KEY:
-        raise HTTPException(
-            status_code=500, detail="OPENAI_API_KEY が設定されていません"
-        )
+        raise HTTPException(status_code=400, detail="入力テキストが長すぎます（上限10000文字）")
+    return chat_json(
+        SYSTEM_PROMPT,
+        f"次のページからレシピを抽出してください:\n\n<text>\n{page_text}\n</text>",
+    )
 
-    client = OpenAI(api_key=OPENAI_API_KEY)
+
+def _fetch_page_text(url: str) -> str:
     try:
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": f"次のページからレシピを抽出してください:\n\n<text>\n{page_text}\n</text>",
-                },
-            ],
-            response_format={"type": "json_object"},
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=502, detail=f"OpenAI APIの呼び出しに失敗しました: {e}"
-        )
+        response = httpx.get(url, timeout=30, follow_redirects=True)
+        response.raise_for_status()
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=422, detail=f"URLの取得に失敗しました: {e}")
 
-    content = completion.choices[0].message.content
-    if content is None:
-        raise HTTPException(status_code=500, detail="OpenAIのレスポンスが空でした")
-    try:
-        parsed = json.loads(content)
-    except json.JSONDecodeError as e:
-        raise HTTPException(
-            status_code=500, detail=f"OpenAIのレスポンス解析に失敗しました: {e}"
-        )
+    soup = BeautifulSoup(response.text, "lxml")
+    for tag in soup(["script", "style", "nav", "footer", "header"]):
+        tag.decompose()
+    page_text = soup.get_text(separator="\n", strip=True)[:_PAGE_TEXT_LIMIT]
+    if not page_text:
+        raise HTTPException(status_code=422, detail="ページからテキストを抽出できませんでした")
+    return page_text
 
-    return parsed
+
+def _to_step(index: int, raw: dict | str) -> StepCreate:
+    if isinstance(raw, dict):
+        return StepCreate(
+            step_number=raw.get("step_number", index + 1),
+            description=raw.get("description", ""),
+        )
+    return StepCreate(step_number=index + 1, description=str(raw))
+
+
+def _to_recipe_create(parsed: dict, source_url: str) -> RecipeCreate:
+    return RecipeCreate(
+        name=parsed.get("name", "不明なレシピ"),
+        source_url=source_url,
+        servings=parsed.get("servings"),
+        ingredients=[
+            IngredientCreate(
+                name=ing.get("name", ""),
+                quantity=ing.get("quantity"),
+                unit=ing.get("unit"),
+                group_name=ing.get("group_name"),
+                note=ing.get("note"),
+            )
+            for ing in parsed.get("ingredients", [])
+        ],
+        steps=[_to_step(i, s) for i, s in enumerate(parsed.get("steps", []))],
+    )
+
+
+def import_recipe_from_url(url: str) -> RecipeCreate:
+    parsed = _extract_recipe_from_text(_fetch_page_text(url))
+    return _to_recipe_create(parsed, url)

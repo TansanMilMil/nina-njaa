@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from db import repo
 from routers.auth import get_current_username
+from routers.deps import ensure_recipe_exists
 
 
 class IngredientBookmarkRequest(BaseModel):
@@ -19,8 +20,7 @@ def get_recipe_bookmarks(username: str = Depends(get_current_username)):
 
 @router.post("/api/bookmarks/recipes/{recipe_id}", status_code=204)
 def add_recipe_bookmark(recipe_id: int, username: str = Depends(get_current_username)):
-    if repo.get_by_id(recipe_id) is None:
-        raise HTTPException(status_code=404, detail="Recipe not found")
+    ensure_recipe_exists(recipe_id)
     repo.add_recipe_bookmark(username, recipe_id)
 
 

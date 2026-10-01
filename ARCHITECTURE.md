@@ -99,10 +99,24 @@
 
 `backend/repository/sqlite.py` に実装。`RecipeRepositoryBase` (ABC) を定義し、`SQLiteRecipeRepository` が Mixin パターンで機能を合成する。
 
-- `_RecipeCRUDMixin` — レシピの CRUD
+- `_RecipeCRUDMixin` — レシピの CRUD・検索・画像パス
 - `_ViewHistoryMixin` — 閲覧履歴
 - `_BookmarkMixin` — ブックマーク
 - `_CookedLogMixin` — 料理記録
+- `_CategoryMixin` — カテゴリ
+- `_schema.py` — テーブル定義・マイグレーション・初期データ
+- `_common.py` — Mixin 共通のヘルパー (接続 Protocol、レシピ一覧 SELECT など)
+
+### バックエンドのモジュール構成
+
+- `routers/` — HTTP 層のみ。存在確認・所有者チェックは `routers/deps.py` の依存関数で共通化
+- `openai_chat.py` — OpenAI JSON モード呼び出しの共通処理
+- `recipe_ai.py` — URL 取得〜レシピ抽出〜`RecipeCreate` 変換
+- `suggest_ai.py` — AI レシピ提案 (キーワード抽出・候補選定)
+- `category_ai.py` — Jev によるカテゴリ分類
+- `reclassify_job.py` — カテゴリ一括再分類ジョブ (プロセス内メモリ管理)
+- `images.py` — 画像の変換・保存・削除
+- `rate_limit.py` — slowapi の Limiter (アプリ全体で単一インスタンス)
 
 ---
 

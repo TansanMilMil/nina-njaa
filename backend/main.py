@@ -1,17 +1,14 @@
-import os
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
+from images import UPLOADS_DIR
+from rate_limit import limiter
 from routers import auth, bookmarks, categories, cooked_logs, history, image, recipes, suggest
 from routers.auth import refresh_auth_cookie
-
-limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI()
 app.state.limiter = limiter
@@ -46,6 +43,5 @@ app.include_router(image.router)
 app.include_router(suggest.router)
 app.include_router(categories.router)
 
-uploads_dir = os.environ.get("UPLOADS_DIR", "/app/uploads")
-os.makedirs(uploads_dir, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
