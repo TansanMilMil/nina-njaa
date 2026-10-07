@@ -41,8 +41,8 @@
 
 | 項目 | 内容 |
 |---|---|
-| フレームワーク | React 18 + TypeScript 5 + Vite 5 |
-| スタイリング | Tailwind CSS 3 + Radix UI + class-variance-authority |
+| フレームワーク | React 19 + TypeScript 7 + Vite 8 |
+| スタイリング | Tailwind CSS 4 + Radix UI + class-variance-authority |
 | ルーティング | React Router DOM v6 |
 | 通知 | Sonner |
 
@@ -65,7 +65,7 @@
 
 | 項目 | 内容 |
 |---|---|
-| 言語/フレームワーク | Python 3.12 + FastAPI + uvicorn |
+| 言語/フレームワーク | Python 3.14 + FastAPI + uvicorn |
 | 主要ライブラリ | python-jose (JWT), slowapi (レートリミット), openai, httpx, beautifulsoup4+lxml |
 
 ### APIエンドポイント

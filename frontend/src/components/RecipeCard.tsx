@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { Star } from 'lucide-react'
 import type { Recipe } from '../api'
 import { cn } from '@/lib/utils'
@@ -15,7 +15,7 @@ export default function RecipeCard({ recipe, isBookmarked, onBookmarkToggle, coo
     <Link
       to={`/recipe/${recipe.id}`}
       className={cn(
-        'block rounded-lg border bg-card text-card-foreground shadow-sm transition-colors hover:bg-accent',
+        'block rounded-lg border bg-card text-card-foreground shadow-xs transition-colors hover:bg-accent',
         isBookmarked && 'border-primary bg-accent/40'
       )}
     >

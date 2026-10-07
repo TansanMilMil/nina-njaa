@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+openai
+httpx
+beautifulsoup4
+lxml
+python-jose[cryptography]
+slowapi
+Pillow
+python-multipart
+janome
+typesafe-sdk

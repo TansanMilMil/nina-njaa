@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { Star } from 'lucide-react'
 import type { Ingredient } from '../api'
 import { groupIngredients, scaleQuantity } from '../lib/ingredients'

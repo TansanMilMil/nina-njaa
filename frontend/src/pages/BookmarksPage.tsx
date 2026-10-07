@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { UserContext } from '../contexts/UserContext'
 import { X } from 'lucide-react'
 import RecipeCard from '../components/RecipeCard'

@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router'
 import { UserContext } from '../contexts/UserContext'
 import { ArrowLeft, Trash2, Edit2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -111,13 +111,13 @@ export default function CookedLogDetailPage() {
           {entries.map(entry => (
             <div
               key={entry.id}
-              className="flex items-start justify-between rounded-lg border bg-card px-4 py-3 text-card-foreground shadow-sm"
+              className="flex items-start justify-between rounded-lg border bg-card px-4 py-3 text-card-foreground shadow-xs"
             >
               {editingId === entry.id ? (
                 <div className="flex w-full flex-col gap-2">
                   <span className="text-sm font-medium">{formatDateTime(entry.cooked_at)}</span>
                   <textarea
-                    className="w-full rounded-md border bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="w-full rounded-md border bg-transparent px-3 py-2 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
                     rows={3}
                     value={editMemo}
                     onChange={e => setEditMemo(e.target.value)}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router'
 import { UserContext } from '../contexts/UserContext'
 import SearchBar from '../components/SearchBar'
 import RecipeCard from '../components/RecipeCard'

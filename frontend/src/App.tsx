@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link } from 'react-router'
 import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed, Sparkles, LogIn, FilePen, Tags, Loader2 } from 'lucide-react'
 import SearchPage from './pages/SearchPage'
 import RecipePage from './pages/RecipePage'
@@ -159,7 +159,7 @@ export default function App() {
     <UserContext.Provider value={currentUsername}>
       <BrowserRouter>
         <div className="flex h-full flex-col">
-          <header className="flex flex-shrink-0 items-center justify-between border-b bg-background px-6 py-4">
+          <header className="flex shrink-0 items-center justify-between border-b bg-background px-6 py-4">
             <Link to="/" className="flex items-center gap-2">
               <img src="/nina-njaa-icon.png" alt="Ninanjaa" className="h-8 w-8" />
               <span className="text-2xl font-bold text-primary">Ninanjaa</span>

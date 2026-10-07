@@ -1,5 +1,5 @@
-# 要ダイジェスト固定: docker manifest inspect mcr.microsoft.com/devcontainers/javascript-node:1-24-bookworm --verbose
-FROM mcr.microsoft.com/devcontainers/javascript-node:24-bookworm
+# 要ダイジェスト固定: docker manifest inspect mcr.microsoft.com/devcontainers/javascript-node:1-24-trixie --verbose
+FROM mcr.microsoft.com/devcontainers/javascript-node:24-trixie
 
 # Python + pip
 RUN apt-get update && apt-get install -y \

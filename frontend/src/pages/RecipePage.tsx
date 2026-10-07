@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router'
 import { deleteRecipe } from '../api'
 import type { RecipeDetail } from '../api'
 import BookmarkButton from '../components/BookmarkButton'
@@ -101,7 +101,7 @@ export default function RecipePage() {
           <button
             type="button"
             onClick={() => setIsImageLightboxOpen(true)}
-            className="block w-full cursor-zoom-in lg:w-72 lg:flex-shrink-0"
+            className="block w-full cursor-zoom-in lg:w-72 lg:shrink-0"
             aria-label="画像を拡大表示"
           >
             <img

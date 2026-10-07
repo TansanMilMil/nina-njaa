@@ -14,7 +14,7 @@ export default function CookLogModal({ memo, submitting, onMemoChange, onSubmit,
       <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
         <h2 className="mb-4 text-xl font-bold">料理記録の追加</h2>
         <textarea
-          className="mb-4 w-full rounded-md border bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          className="mb-4 w-full rounded-md border bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           rows={4}
           placeholder="メモ（任意）&#13;&#10;例：塩を少し減らしてちょうどよかった"
           value={memo}

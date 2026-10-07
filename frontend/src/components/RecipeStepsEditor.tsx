@@ -65,7 +65,7 @@ function SortableStepRow({ step, index, placeholder, onChange, onRemove }: Sorta
         onChange={e => onChange(index, e.target.value)}
         rows={2}
         placeholder={placeholder}
-        className="flex w-full flex-1 rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex w-full flex-1 rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
       />
       <Button type="button" variant="ghost" size="sm" onClick={() => onRemove(index)}>削除</Button>
     </div>
