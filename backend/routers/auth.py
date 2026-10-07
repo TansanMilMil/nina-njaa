@@ -2,8 +2,8 @@ import os
 import secrets
 from datetime import datetime, timedelta
 
+import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from jose import JWTError, jwt
 from pydantic import BaseModel
 
 from rate_limit import limiter
@@ -44,7 +44,7 @@ def _decode_username(token: str | None) -> str | None:
         return None
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-    except JWTError:
+    except jwt.InvalidTokenError:
         return None
     return str(payload["sub"])
 
