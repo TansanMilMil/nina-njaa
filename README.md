@@ -67,6 +67,22 @@ task deploy
 bash scripts/deploy.sh
 ```
 
+### 本番環境の構成
+
+コードからは分からない本番の設定（2026-10-09 時点）。
+
+- サーバーはさくらのVPS `venus`。配置先は `/home/alma/nina-njaa` で、birds_eye_v3・uwabami・wp-kimagure と同じホストで動いている
+- 本番の環境変数はPJ直下の `.env` ではなく、venus の `~/.env` にまとめてある。SSHログイン時に読み込まれ、`docker compose` はその値を使う。変数を追加・変更するときは venus の `~/.env` を編集する（`scripts/deploy.sh` は `.env` を転送しない）
+- 外部から届くのは、さくらのパケットフィルタで許可したポートだけ。Dockerの `ports` はfirewalldを通らないため、新しくポートを公開するときはパケットフィルタの設定も変える
+- CloudFront の設定
+
+| 項目 | 設定 |
+|---|---|
+| ドメイン | `nina-njaa.ts-soda.net` |
+| オリジン | venus の 8090 番。CloudFrontとオリジンの間はHTTP（TLSはCloudFrontで終端） |
+| カスタムヘッダー | `X-CloudFront-Secret`。値は venus の `NINA_NJAA_CLOUDFRONT_SECRET` と一致させる |
+| キャッシュ | `/api/*` は `CachingDisabled` |
+
 ---
 
 ## 環境変数
