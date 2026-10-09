@@ -73,7 +73,7 @@ bash scripts/deploy.sh
 
 - サーバーはさくらのVPS `venus`。配置先は `/home/alma/nina-njaa` で、birds_eye_v3・uwabami・wp-kimagure と同じホストで動いている
 - 本番の環境変数はPJ直下の `.env` ではなく、venus の `~/.env` にまとめてある。SSHログイン時に読み込まれ、`docker compose` はその値を使う。変数を追加・変更するときは venus の `~/.env` を編集する（`scripts/deploy.sh` は `.env` を転送しない）
-- nginxのログは `logs/nginx/` に出る。secretが一致したCloudFront経由のリクエストは `access.log`、それ以外の直接アクセスは `direct.log`。先頭のIPは、secretが一致したときだけ `CloudFront-Viewer-Address` から取った利用者のIP、それ以外は接続元のIP。ローテートは venus の `/etc/logrotate.d/venus-nginx`（`venus-monitoring` で管理）
+- nginxのログは `logs/nginx/` に出る。secretが一致したCloudFront経由のリクエストは `access.log`、それ以外の直接アクセスは `direct.log`。各行の先頭はリクエストのHost、その次のIPは、secretが一致したときだけ `CloudFront-Viewer-Address` から取った利用者のIP、それ以外は接続元のIP。ローテートは venus の `/etc/logrotate.d/venus-nginx`（`venus-monitoring` で管理）
 - 遮断リスト（JPCERTのIoCなど）は、venus の `~/.env` の `VENUS_NGINX_BLOCKLIST_DIR`（`/home/alma/venus-monitoring/nginx-blocklist`）を `/etc/nginx/blocklist` にマウントして読む。未設定だとリポジトリ内の空のリストが使われ、何も遮断しない
 - 外部から届くのは、さくらのパケットフィルタで許可したポートだけ。Dockerの `ports` はfirewalldを通らないため、新しくポートを公開するときはパケットフィルタの設定も変える
 - CloudFront の設定
