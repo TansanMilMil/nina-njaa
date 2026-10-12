@@ -72,7 +72,8 @@
 
 | メソッド | パス | 概要 |
 |---|---|---|
-| POST | `/api/auth/login` | ログイン (5req/min制限) |
+| GET | `/api/auth/google/login` | Googleの認可画面へリダイレクト (10req/min制限) |
+| GET | `/api/auth/google/callback` | Googleからのコールバック。認証Cookieを発行して `/` へリダイレクト (10req/min制限) |
 | POST | `/api/auth/logout` | ログアウト |
 | GET | `/api/auth/me` | 認証確認 |
 | GET | `/api/recipes` | レシピ検索 (`?q=`) |
@@ -89,11 +90,14 @@
 
 ### 認証
 
-- シングルユーザー前提。ID/パスワードは環境変数で設定
+- Googleアカウントでログインする (OpenID Connect の認可コードフロー + PKCE)
+- ログインできるのは `NINA_NJAA_GOOGLE_ALLOWED_ACCOUNTS` に列挙したメールアドレスのみ。ログイン後は対応するユーザー名で扱う
+- `state`・`nonce`・PKCEの `code_verifier` は署名付きの短命Cookie (`google_oauth`, SameSite=Lax, 10分) に保存し、コールバックで照合する
+- IDトークンはトークンエンドポイントからTLSで直接受け取るため署名検証は省略し、`iss`・`aud`・`exp`・`nonce`・`email_verified` を検証する
+- 失敗時は `/?login_error=forbidden|failed|cancelled` へリダイレクトし、フロントがログインモーダルにエラーを表示する
 - ログイン成功後は **JWT (HS256)** を **HttpOnly Cookie** (`auth_token`) に保存
 - Cookie有効期限: 7日 (`NINA_NJAA_JWT_EXPIRE_DAYS` で変更可)
 - `SECURE_COOKIE=true` がデフォルト (本番HTTPS前提)
-- `secrets.compare_digest` でタイミング攻撃対策済み
 
 ### リポジトリ層
 
@@ -163,8 +167,10 @@ CloudFront → X-CloudFront-Secret: <secret> → NGINX
 
 | 変数名 | 必須 | 説明 |
 |---|---|---|
-| `NINA_NJAA_BASIC_AUTH_USER` | ✅ | ログインユーザー名 |
-| `NINA_NJAA_BASIC_AUTH_PASS` | ✅ | ログインパスワード |
+| `NINA_NJAA_GOOGLE_CLIENT_ID` | ✅ | Google OAuth クライアントID |
+| `NINA_NJAA_GOOGLE_CLIENT_SECRET` | ✅ | Google OAuth クライアントシークレット |
+| `NINA_NJAA_GOOGLE_REDIRECT_URI` | ✅ | コールバックURL (Googleに登録したリダイレクトURIと一致させる) |
+| `NINA_NJAA_GOOGLE_ALLOWED_ACCOUNTS` | ✅ | 許可するアカウント (`email=username` のカンマ区切り) |
 | `NINA_NJAA_JWT_SECRET_KEY` | ✅ | JWT署名鍵 |
 | `NINA_NJAA_OPENAI_API_KEY` | ✅ | OpenAI API (URLインポート用) |
 | `NINA_NJAA_CLOUDFRONT_SECRET` | ✅ | CloudFrontシークレット |

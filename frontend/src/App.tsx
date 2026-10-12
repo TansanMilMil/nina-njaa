@@ -12,23 +12,43 @@ import AddRecipePage from './pages/AddRecipePage'
 import LoginPage from './LoginPage'
 import ImportFromUrl from './components/ImportFromUrl'
 import { Button } from '@/components/ui/button'
-import { login, logout, checkAuth, startReclassifyCategories, getReclassifyCategoriesStatus } from './api'
+import { logout, checkAuth, startReclassifyCategories, getReclassifyCategoriesStatus } from './api'
 import type { ReclassifyCategoriesStatus } from './api'
 import { Toaster, toast } from 'sonner'
 import { UserContext } from './contexts/UserContext'
 
+const LOGIN_ERROR_MESSAGES: Record<string, string> = {
+  forbidden: 'このGoogleアカウントではログインできません',
+  failed: 'ログインに失敗しました',
+}
+
+function consumeLoginError(): string | null {
+  const url = new URL(window.location.href)
+  const code = url.searchParams.get('login_error')
+  if (code === null) return null
+  url.searchParams.delete('login_error')
+  window.history.replaceState(window.history.state, '', url)
+  return LOGIN_ERROR_MESSAGES[code] ?? null
+}
+
+const initialLoginError = consumeLoginError()
+
 export default function App() {
   const [currentUsername, setCurrentUsername] = useState<string | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
-  const [loginLoading, setLoginLoading] = useState(false)
-  const [loginError, setLoginError] = useState<string | null>(null)
-  const [showLogin, setShowLogin] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(initialLoginError)
+  const [showLogin, setShowLogin] = useState(loginError !== null)
   const [importOpen, setImportOpen] = useState(false)
   const [addChoiceOpen, setAddChoiceOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [reclassifyProgress, setReclassifyProgress] = useState<ReclassifyCategoriesStatus | null>(null)
   const reclassifying = reclassifyProgress !== null
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const closeLogin = () => {
+    setShowLogin(false)
+    setLoginError(null)
+  }
 
   useEffect(() => {
     checkAuth().then(username => {
@@ -55,7 +75,7 @@ export default function App() {
   useEffect(() => {
     if (!showLogin) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setShowLogin(false)
+      if (e.key === 'Escape') closeLogin()
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
@@ -80,20 +100,6 @@ export default function App() {
     window.addEventListener('mousedown', handleClickOutside)
     return () => window.removeEventListener('mousedown', handleClickOutside)
   }, [menuOpen])
-
-  const handleLogin = async (user: string, pass: string) => {
-    setLoginLoading(true)
-    try {
-      await login(user, pass)
-      setCurrentUsername(user)
-      setLoginError(null)
-      setShowLogin(false)
-    } catch {
-      setLoginError('ユーザー名またはパスワードが違います')
-    } finally {
-      setLoginLoading(false)
-    }
-  }
 
   const handleLogout = async () => {
     if (!window.confirm('ログアウトしますか？')) return
@@ -277,11 +283,11 @@ export default function App() {
 
         {showLogin && (
           <div
-            onClick={() => { setShowLogin(false); setLoginError(null) }}
+            onClick={closeLogin}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
           >
             <div onClick={e => e.stopPropagation()}>
-              <LoginPage onLogin={handleLogin} error={loginError} loading={loginLoading} />
+              <LoginPage error={loginError} />
             </div>
           </div>
         )}

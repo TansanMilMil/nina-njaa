@@ -94,8 +94,10 @@ bash scripts/deploy.sh
 
 ```dotenv
 # 必須
-NINA_NJAA_BASIC_AUTH_USER=your_username
-NINA_NJAA_BASIC_AUTH_PASS=your_password
+NINA_NJAA_GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
+NINA_NJAA_GOOGLE_CLIENT_SECRET=your_client_secret
+NINA_NJAA_GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google/callback
+NINA_NJAA_GOOGLE_ALLOWED_ACCOUNTS=me@gmail.com=admin
 NINA_NJAA_JWT_SECRET_KEY=your_jwt_secret_key
 NINA_NJAA_OPENAI_API_KEY=sk-...
 NINA_NJAA_CLOUDFRONT_SECRET=your_cloudfront_secret
@@ -108,14 +110,25 @@ SECURE_COOKIE=true                     # デフォルト: true
 
 | 変数名 | 必須 | 説明 |
 |---|---|---|
-| `NINA_NJAA_BASIC_AUTH_USER` | ✅ | ログインユーザー名 |
-| `NINA_NJAA_BASIC_AUTH_PASS` | ✅ | ログインパスワード |
+| `NINA_NJAA_GOOGLE_CLIENT_ID` | ✅ | Google OAuth クライアント ID |
+| `NINA_NJAA_GOOGLE_CLIENT_SECRET` | ✅ | Google OAuth クライアントシークレット |
+| `NINA_NJAA_GOOGLE_REDIRECT_URI` | ✅ | コールバック URL。Google に登録した「承認済みのリダイレクト URI」と完全一致させる |
+| `NINA_NJAA_GOOGLE_ALLOWED_ACCOUNTS` | ✅ | ログインを許可する Google アカウントとユーザー名の対応（`email=username` をカンマ区切り）。ユーザー名はブックマーク・履歴などの紐付けに使う |
 | `NINA_NJAA_JWT_SECRET_KEY` | ✅ | JWT 署名鍵 |
 | `NINA_NJAA_OPENAI_API_KEY` | ✅ | OpenAI API キー（URL インポート機能で使用） |
 | `NINA_NJAA_CLOUDFRONT_SECRET` | ✅ | CloudFront オリジン保護用シークレット（未設定時は NGINX が起動しない） |
 | `NINA_NJAA_DB_PATH` | — | DB ファイルパス |
 | `NINA_NJAA_JWT_EXPIRE_DAYS` | — | JWT 有効期限（日数） |
 | `SECURE_COOKIE` | — | Cookie の Secure フラグ（本番では `true` のまま運用すること） |
+
+### Google ログインの設定
+
+[Google Cloud Console](https://console.cloud.google.com/apis/credentials) で OAuth クライアント ID（種類: ウェブ アプリケーション）を作成し、「承認済みのリダイレクト URI」に次を登録する。
+
+- 本番: `https://nina-njaa.ts-soda.net/api/auth/google/callback`
+- 開発: `http://localhost:5173/api/auth/google/callback`
+
+OAuth 同意画面が「テスト」のままだと、テストユーザーに追加したアカウントしかログインできない。
 
 ---
 

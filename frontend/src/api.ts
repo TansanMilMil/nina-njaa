@@ -76,14 +76,7 @@ async function fetchJsonOr<T>(path: string, fallback: T): Promise<T> {
   return res.json()
 }
 
-export async function login(username: string, password: string): Promise<void> {
-  const res = await fetch(`${BASE}/auth/login`, {
-    credentials: 'include',
-    ...jsonInit('POST', { username, password }),
-  })
-  if (res.status === 401) throw new UnauthorizedError()
-  assertOk(res, 'ログインに失敗しました')
-}
+export const GOOGLE_LOGIN_URL = `${BASE}/auth/google/login`
 
 export async function logout(): Promise<void> {
   await authFetch(`${BASE}/auth/logout`, { method: 'POST' })
