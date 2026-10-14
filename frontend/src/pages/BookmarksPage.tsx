@@ -1,8 +1,9 @@
-import { useState, useEffect, useContext } from 'react'
-import { Link } from 'react-router'
+import { useState, useEffect, useContext, useMemo } from 'react'
+import { Link, useSearchParams } from 'react-router'
 import { UserContext } from '../contexts/UserContext'
 import { X } from 'lucide-react'
 import RecipeCard from '../components/RecipeCard'
+import Pagination from '../components/Pagination'
 import { RecipeCardSkeleton } from '../components/Skeleton'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { useIngredientBookmarks } from '../hooks/useIngredientBookmarks'
@@ -12,6 +13,8 @@ import { cn } from '@/lib/utils'
 
 type Tab = 'recipes' | 'ingredients'
 
+const PAGE_SIZE = 10
+
 export default function BookmarksPage() {
   const currentUsername = useContext(UserContext)
   const { bookmarks, toggle } = useBookmarks()
@@ -20,18 +23,40 @@ export default function BookmarksPage() {
   const [loadingRecipes, setLoadingRecipes] = useState(false)
   const [cookedCountMap, setCookedCountMap] = useState<Map<number, number>>(new Map())
   const [tab, setTab] = useState<Tab>('recipes')
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const totalPages = Math.max(1, Math.ceil(bookmarks.length / PAGE_SIZE))
+  const requestedPage = Math.floor(Number(searchParams.get('page'))) || 1
+  const page = Math.min(Math.max(1, requestedPage), totalPages)
+  const pageIds = useMemo(
+    () => bookmarks.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [bookmarks, page]
+  )
 
   useEffect(() => {
-    if (bookmarks.length === 0) {
+    if (pageIds.length === 0) {
       setRecipes([])
       return
     }
+    let cancelled = false
     setLoadingRecipes(true)
-    getRecipesByIds(bookmarks).then(data => {
+    getRecipesByIds(pageIds).then(data => {
+      if (cancelled) return
       setRecipes(data)
       setLoadingRecipes(false)
     })
-  }, [bookmarks])
+    return () => { cancelled = true }
+  }, [pageIds])
+
+  const changePage = (next: number) => {
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev)
+      if (next <= 1) params.delete('page')
+      else params.set('page', String(next))
+      return params
+    })
+    window.scrollTo({ top: 0 })
+  }
 
   useEffect(() => {
     if (currentUsername) {
@@ -70,9 +95,10 @@ export default function BookmarksPage() {
         ) : (
           <div className="flex flex-col gap-3">
             {loadingRecipes
-              ? Array.from({ length: bookmarks.length }, (_, i) => <RecipeCardSkeleton key={i} />)
+              ? Array.from({ length: pageIds.length }, (_, i) => <RecipeCardSkeleton key={i} />)
               : recipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked onBookmarkToggle={() => toggle(r.id)} cookedCount={cookedCountMap.get(r.id) ?? 0} />)
             }
+            <Pagination page={page} totalPages={totalPages} onChange={changePage} />
           </div>
         )
       )}
