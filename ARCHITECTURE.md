@@ -65,7 +65,7 @@
 
 | 項目 | 内容 |
 |---|---|
-| 言語/フレームワーク | Python 3.14 + FastAPI + uvicorn |
+| 言語/フレームワーク | Python 3.15 + FastAPI + uvicorn |
 | 主要ライブラリ | python-jose (JWT), slowapi (レートリミット), openai, httpx, beautifulsoup4+lxml |
 
 ### APIエンドポイント

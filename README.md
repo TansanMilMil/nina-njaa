@@ -11,7 +11,7 @@
 | レイヤー | 内容 |
 |---|---|
 | フロントエンド | React 19 + TypeScript + Vite + Tailwind CSS |
-| バックエンド | Python 3.14 + FastAPI + SQLite |
+| バックエンド | Python 3.15 + FastAPI + SQLite |
 | インフラ | Docker (nginx + backend + frontend) + CloudFront (本番) |
 | タスクランナー | Taskfile |
 
@@ -22,7 +22,7 @@
 ### 前提
 
 - [Task](https://taskfile.dev/) がインストールされていること
-- Node.js 22.22 以上、Python 3.14 以上が使えること
+- Node.js 22.22 以上、Python 3.15 以上が使えること
 - `.env` ファイルが用意されていること（後述）
 
 ### 初回セットアップ
