@@ -188,8 +188,6 @@ task dev   # Vite dev server (:5173) + uvicorn (:8001) を同時起動
 
 Vite の `/api` プロキシがバックエンドに中継するため、フロントはポート5173のみ意識すればよい。
 
-Dev Container (`.devcontainer/`) により VS Code 上で Docker-in-Docker 環境が使える。フォーマッタは Ruff (Python) と Prettier (TS/JS) が自動適用される。
-
 ---
 
 ## デプロイ
