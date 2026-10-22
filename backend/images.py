@@ -2,6 +2,7 @@ import io
 import os
 import pathlib
 import uuid
+import warnings
 
 from fastapi import HTTPException
 from PIL import Image, ImageOps
@@ -10,6 +11,8 @@ UPLOADS_DIR = pathlib.Path(os.environ.get("UPLOADS_DIR", "/app/uploads"))
 ALLOWED_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20MB
 MAX_IMAGE_LONG_SIDE = 600
+# 200MPセンサー(16320x12240)のスマホ写真を許容する
+Image.MAX_IMAGE_PIXELS = 250_000_000
 
 
 def _to_rgb(img: Image.Image) -> Image.Image:
@@ -26,8 +29,14 @@ def _decode_image(raw: bytes) -> Image.Image:
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="ファイルサイズが20MBを超えています")
     try:
-        img = Image.open(io.BytesIO(raw))
-        img.load()
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            img = Image.open(io.BytesIO(raw))
+            # JPEGはデコード時に縮小して高解像度写真のメモリ消費を抑える
+            img.draft("RGB", (MAX_IMAGE_LONG_SIDE, MAX_IMAGE_LONG_SIDE))
+            img.load()
+    except (Image.DecompressionBombWarning, Image.DecompressionBombError):
+        raise HTTPException(status_code=413, detail="画像の解像度が大きすぎます")
     except Exception:
         raise HTTPException(status_code=422, detail="画像の読み込みに失敗しました")
     img = _to_rgb(ImageOps.exif_transpose(img))
