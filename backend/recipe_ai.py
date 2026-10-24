@@ -1,9 +1,9 @@
-import httpx
 from bs4 import BeautifulSoup
 from fastapi import HTTPException
 
 from models import IngredientCreate, RecipeCreate, StepCreate
 from openai_chat import chat_json
+from safe_url import fetch_public_page
 
 _PAGE_TEXT_LIMIT = 8000
 
@@ -50,13 +50,7 @@ def _extract_recipe_from_text(page_text: str) -> dict:
 
 
 def _fetch_page_text(url: str) -> str:
-    try:
-        response = httpx.get(url, timeout=30, follow_redirects=True)
-        response.raise_for_status()
-    except httpx.HTTPError as e:
-        raise HTTPException(status_code=422, detail=f"URLの取得に失敗しました: {e}")
-
-    soup = BeautifulSoup(response.text, "lxml")
+    soup = BeautifulSoup(fetch_public_page(url), "lxml")
     for tag in soup(["script", "style", "nav", "footer", "header"]):
         tag.decompose()
     page_text = soup.get_text(separator="\n", strip=True)[:_PAGE_TEXT_LIMIT]
