@@ -73,12 +73,45 @@ NGINX が `:8090` で待ち受ける。
 
 ### デプロイ
 
-rsync でリモートサーバー (`venus`) に転送し、`docker compose` を再起動する。
+main に push すると自動でデプロイされる。
+
+1. GitHub Actions（`.github/workflows/build-images.yml`）が backend・frontend・nginx のイメージをビルドし、backend のテストが通ったら `ghcr.io/tansanmilmil/nina-njaa-<service>:<コミットSHA>` を push する
+2. venus の systemd timer（`nina-njaa-deploy.timer`）が2分ごとに `deploy/venus/pull-deploy.sh` を実行する。`origin/main` が前回デプロイしたコミットと違えば、そのコミットに `git reset --hard` し、イメージを pull して `docker compose up -d --no-build` で入れ替える
+3. イメージがまだ無い（ビルド中・テスト失敗）コミットは、コードを元に戻して次の回に再試行する
+
+デプロイ済みのコミットは venus の `/home/alma/nina-njaa/.env` の `NINA_NJAA_IMAGE_TAG` に記録される。ログは `journalctl -u nina-njaa-deploy` で見る。
+
+イメージ名に付くタグは `NINA_NJAA_IMAGE_TAG` で決まり、未設定なら `local`。ローカルで `docker compose up -d --build` すると `:local` としてビルドされ、GHCR からは取得しない。
+
+#### ロールバック
+
+venus で戻したいコミットを指定して入れ替える。main を戻さない限り、次に main が更新されたときに最新へ戻る。
 
 ```bash
-task deploy
-# または
-bash scripts/deploy.sh
+cd /home/alma/nina-njaa
+git reset --hard <sha>
+NINA_NJAA_IMAGE_TAG=<sha> docker compose pull
+NINA_NJAA_IMAGE_TAG=<sha> docker compose up -d --no-build
+```
+
+#### venus の初回セットアップ
+
+```bash
+# 1. GHCR にログイン（read:packages だけを付けた classic PAT をパスワードに入力する。fine-grained PAT は GHCR で使えない）
+docker login ghcr.io -u TansanMilMil
+
+# 2. rsync で置いていたディレクトリを git 管理に切り替える（db/ と logs/ は .gitignore 対象なので残る）
+#    リポジトリは public なので、git fetch に認証は要らない
+cd /home/alma/nina-njaa
+git init
+git remote add origin https://github.com/TansanMilMil/nina-njaa.git
+git fetch origin main
+git reset --hard origin/main
+
+# 3. timer を登録する
+sudo cp deploy/venus/nina-njaa-deploy.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now nina-njaa-deploy.timer
 ```
 
 ### 本番環境の構成
@@ -86,7 +119,7 @@ bash scripts/deploy.sh
 コードからは分からない本番の設定（2026-10-09 時点）。
 
 - サーバーはさくらのVPS `venus`。配置先は `/home/alma/nina-njaa` で、birds_eye_v3・uwabami・wp-kimagure と同じホストで動いている
-- 本番の環境変数はPJ直下の `.env` ではなく、venus の `~/.env` にまとめてある。SSHログイン時に読み込まれ、`docker compose` はその値を使う。変数を追加・変更するときは venus の `~/.env` を編集する（`scripts/deploy.sh` は `.env` を転送しない）
+- 本番の環境変数はPJ直下の `.env` ではなく、venus の `~/.env` にまとめてある。SSHログイン時に読み込まれ、`docker compose` はその値を使う。変数を追加・変更するときは venus の `~/.env` を編集する。デプロイの timer は `deploy/venus/pull-deploy.sh` の中で `~/.env` を読み込む
 - nginxのログは `logs/nginx/` に出る。secretが一致したCloudFront経由のリクエストは `access.log`、それ以外の直接アクセスは `direct.log`。各行の先頭はリクエストのHost、その次のIPは、secretが一致したときだけ `CloudFront-Viewer-Address` から取った利用者のIP、それ以外は接続元のIP。行末の `rid=` はnginxの `$request_id`（リクエストごとの32桁のID。Slack通知の `request_id` と同じ値）。ローテートは venus の `/etc/logrotate.d/venus-nginx`（`venus-monitoring` で管理）
 - 遮断リスト（JPCERTのIoCなど）は、venus の `~/.env` の `VENUS_NGINX_BLOCKLIST_DIR`（`/home/alma/venus-monitoring/nginx-blocklist`）を `/etc/nginx/blocklist` にマウントして読む。未設定だとリポジトリ内の空のリストが使われ、何も遮断しない
 - 外部から届くのは、さくらのパケットフィルタで許可したポートだけ。Dockerの `ports` はfirewalldを通らないため、新しくポートを公開するときはパケットフィルタの設定も変える

@@ -1,5 +1,6 @@
 services:
   backend:
+    image: ghcr.io/tansanmilmil/nina-njaa-backend:${NINA_NJAA_IMAGE_TAG:-local}
     build: ./backend
     environment:
       - NINA_NJAA_GOOGLE_CLIENT_ID=${NINA_NJAA_GOOGLE_CLIENT_ID}
@@ -18,6 +19,7 @@ services:
     restart: unless-stopped
 
   frontend:
+    image: ghcr.io/tansanmilmil/nina-njaa-frontend:${NINA_NJAA_IMAGE_TAG:-local}
     build:
       context: ./frontend
     volumes:
@@ -26,6 +28,7 @@ services:
       - app-net
 
   nginx:
+    image: ghcr.io/tansanmilmil/nina-njaa-nginx:${NINA_NJAA_IMAGE_TAG:-local}
     build:
       context: ./nginx
     environment:

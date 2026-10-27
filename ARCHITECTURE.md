@@ -192,8 +192,11 @@ Vite の `/api` プロキシがバックエンドに中継するため、フロ�
 
 ## デプロイ
 
-CI/CD は未設定。`scripts/deploy.sh` を手動実行する。
+main への push で GitHub Actions がイメージをビルドしてテストし、通ったら GHCR に push する。venus は systemd timer で2分ごとに main を確認し、そのコミットのイメージを pull して入れ替える。venus への受信接続は使わない。
 
 ```
-rsync → venus (SSHホスト) → docker compose down && docker compose up -d --build
+push main → Actions (build → test → GHCR に :<sha> を push)
+venus timer → git fetch → docker compose pull (:<sha>) → docker compose up -d --no-build
 ```
+
+詳細は README の「デプロイ」を参照。
