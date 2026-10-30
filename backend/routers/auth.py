@@ -2,6 +2,7 @@ import base64
 import hashlib
 import os
 import secrets
+import time
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
@@ -10,6 +11,7 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 
+from db import repo
 from rate_limit import limiter
 
 JWT_SECRET_KEY = os.environ.get("NINA_NJAA_JWT_SECRET_KEY")
@@ -17,6 +19,7 @@ if not JWT_SECRET_KEY:
     raise RuntimeError("環境変数 NINA_NJAA_JWT_SECRET_KEY を設定してください")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = int(os.environ.get("NINA_NJAA_JWT_EXPIRE_DAYS", "7"))
+SESSION_MAX_DAYS = int(os.environ.get("NINA_NJAA_SESSION_MAX_DAYS", "30"))
 AUTH_COOKIE = "auth_token"
 SECURE_COOKIE = os.environ.get("NINA_NJAA_SECURE_COOKIE", "true").lower() == "true"
 
@@ -52,42 +55,57 @@ OAUTH_COOKIE_PATH = "/api/auth/google"
 OAUTH_STATE_EXPIRE_MINUTES = 10
 
 
-def create_access_token(username: str) -> str:
-    expire = datetime.utcnow() + timedelta(days=JWT_EXPIRE_DAYS)
-    return jwt.encode({"sub": username, "exp": expire}, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-
-
-def set_auth_cookie(response: Response, token: str) -> None:
+def set_session_cookie(response: Response, session: dict) -> None:
+    now = int(time.time())
+    expire = min(now + JWT_EXPIRE_DAYS * 24 * 3600, session["expires_at"])
+    token = jwt.encode(
+        {"sub": session["username"], "sid": session["id"], "exp": expire},
+        JWT_SECRET_KEY,
+        algorithm=JWT_ALGORITHM,
+    )
     response.set_cookie(
         AUTH_COOKIE,
         token,
         httponly=True,
         samesite="strict",
         secure=SECURE_COOKIE,
-        max_age=JWT_EXPIRE_DAYS * 24 * 3600,
+        max_age=expire - now,
     )
 
 
-def _decode_username(token: str | None) -> str | None:
+def start_session(response: Response, username: str) -> None:
+    repo.delete_expired_auth_sessions()
+    expires_at = int(time.time()) + SESSION_MAX_DAYS * 24 * 3600
+    session_id = repo.create_auth_session(username, expires_at)
+    set_session_cookie(response, {"id": session_id, "username": username, "expires_at": expires_at})
+
+
+def _decode_session(token: str | None) -> dict | None:
     if not token:
         return None
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
     except jwt.InvalidTokenError:
         return None
-    username = str(payload["sub"])
-    return username if username in ALLOWED_USERNAMES else None
+    session_id = payload.get("sid")
+    if not isinstance(session_id, str):
+        return None
+    session = repo.get_auth_session(session_id)
+    if session is None or session["username"] != payload.get("sub"):
+        return None
+    return session if session["username"] in ALLOWED_USERNAMES else None
 
 
 def refresh_auth_cookie(request: Request, response: Response) -> None:
-    """アクティブなユーザーのセッションが有効期限で切れないよう、有効なトークンを毎リクエスト延長する"""
-    username = _decode_username(request.cookies.get(AUTH_COOKIE))
-    if username is not None:
-        set_auth_cookie(response, create_access_token(username))
+    """アクティブなユーザーのセッションが有効期限で切れないよう、有効なトークンを毎リクエスト延長する（セッションの絶対期限は超えない）"""
+    session = _decode_session(request.cookies.get(AUTH_COOKIE))
+    if session is not None:
+        set_session_cookie(response, session)
 
 
 def get_optional_username(request: Request) -> str | None:
-    return _decode_username(request.cookies.get(AUTH_COOKIE))
+    session = _decode_session(request.cookies.get(AUTH_COOKIE))
+    return session["username"] if session else None
 
 
 def get_current_username(request: Request) -> str:
@@ -206,12 +224,15 @@ def google_callback(request: Request, code: str | None = None, state: str | None
 
     response = RedirectResponse("/", status_code=status.HTTP_302_FOUND)
     response.delete_cookie(OAUTH_COOKIE, path=OAUTH_COOKIE_PATH, httponly=True, samesite="lax", secure=SECURE_COOKIE)
-    set_auth_cookie(response, create_access_token(username))
+    start_session(response, username)
     return response
 
 
 @router.post("/api/auth/logout")
-def logout(response: Response):
+def logout(request: Request, response: Response):
+    session = _decode_session(request.cookies.get(AUTH_COOKIE))
+    if session is not None:
+        repo.delete_auth_session(session["id"])
     response.delete_cookie(AUTH_COOKIE, httponly=True, samesite="strict", secure=SECURE_COOKIE)
     return {"ok": True}
 

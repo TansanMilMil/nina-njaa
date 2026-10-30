@@ -2,6 +2,7 @@ import os
 import sqlite3
 
 from kana import to_hiragana
+from repository._auth_session import _AuthSessionMixin
 from repository._bookmark import _BookmarkMixin
 from repository._category import _CategoryMixin
 from repository._cooked_log import _CookedLogMixin
@@ -17,6 +18,7 @@ class SQLiteRecipeRepository(
     _BookmarkMixin,
     _CookedLogMixin,
     _CategoryMixin,
+    _AuthSessionMixin,
     RecipeRepositoryBase,
 ):
     def __init__(self, db_path: str):

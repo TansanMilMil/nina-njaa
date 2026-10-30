@@ -106,6 +106,15 @@ _SCHEMA_STATEMENTS = (
     """,
     "CREATE INDEX IF NOT EXISTS idx_rc_recipe_id ON recipe_categories(recipe_id)",
     "CREATE INDEX IF NOT EXISTS idx_rc_category_id ON recipe_categories(category_id)",
+    """
+    CREATE TABLE IF NOT EXISTS auth_sessions (
+        id TEXT PRIMARY KEY,
+        username TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_as_expires_at ON auth_sessions(expires_at)",
 )
 
 _SEED_CATEGORIES = (
