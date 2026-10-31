@@ -68,6 +68,10 @@ class RecipeCreate(BaseModel):
     steps: list[StepCreate] = []
 
 
+class WebRecipe(RecipeCreate):
+    registered_recipe_id: int | None = None
+
+
 class RecipeUpdate(BaseModel):
     name: str
     source_url: str

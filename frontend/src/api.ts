@@ -150,6 +150,7 @@ export interface RecipeCreatePayload {
 
 export async function createRecipe(data: RecipeCreatePayload): Promise<RecipeDetail> {
   const res = await authFetch(`${BASE}/recipes`, jsonInit('POST', data))
+  if (res.status === 409) throw new DuplicateUrlError()
   assertOk(res, '登録に失敗しました')
   return res.json()
 }
@@ -290,6 +291,20 @@ export async function uploadRecipeImage(id: number, file: File): Promise<{ image
   const res = await fetch(`/api/recipes/${id}/image`, { method: 'POST', body: form })
   if (res.status === 401) { window.dispatchEvent(new Event('unauthorized')); throw new Error('unauthorized') }
   if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail ?? 'upload failed') }
+  return res.json()
+}
+
+export interface WebRecipe extends RecipeCreatePayload {
+  source_url: string
+  registered_recipe_id: number | null
+}
+
+export async function searchWebRecipes(query: string): Promise<WebRecipe[]> {
+  const res = await authFetch(`${BASE}/ai/recipes/web-search`, jsonInit('POST', { query }))
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}))
+    throw new Error(res.status === 429 ? 'しばらく時間をおいてから再度お試しください' : d.detail ?? 'Web検索に失敗しました')
+  }
   return res.json()
 }
 

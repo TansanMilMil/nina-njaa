@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router'
 import { UserContext } from '../contexts/UserContext'
 import SearchBar from '../components/SearchBar'
 import RecipeCard from '../components/RecipeCard'
+import WebRecipeSearch from '../components/WebRecipeSearch'
 import { RecipeCardSkeleton } from '../components/Skeleton'
 import { searchRecipes, getIngredientSuggestions, getRecentViewedRecipes, getCookedLogs, getCategories } from '../api'
 import type { Recipe, Category } from '../api'
@@ -117,6 +118,10 @@ export default function SearchPage() {
   const scrollToTop = () => document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' })
 
   const showRecent = q === '' && selectedCategoryIds.length === 0
+  const webQuery = [
+    ...queryTokens,
+    ...categories.filter(c => selectedCategoryIds.includes(c.id)).map(c => c.name),
+  ].join(' ')
 
   return (
     <>
@@ -193,6 +198,11 @@ export default function SearchPage() {
               <p className="mb-3 text-sm text-muted-foreground">
                 {results.length === 0 ? '該当するレシピが見つかりませんでした' : `${results.length}件のレシピが見つかりました`}
               </p>
+            )}
+            {!loading && currentUsername && queryTokens.length > 0 && (
+              <div className="mb-3">
+                <WebRecipeSearch key={webQuery} query={webQuery} />
+              </div>
             )}
             <div className="flex flex-col gap-3">
               {loading

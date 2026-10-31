@@ -78,6 +78,7 @@
 | GET | `/api/auth/me` | 認証確認 |
 | GET | `/api/recipes` | レシピ検索 (`?q=`) |
 | POST | `/api/recipes/from-url` | URLからOpenAI経由でレシピ生成・登録 |
+| POST | `/api/ai/recipes/web-search` | 検索条件でWeb検索し、見つかったレシピをAIで抽出して最大5件返す (登録はしない) |
 | GET/PUT/DELETE | `/api/recipes/{id}` | レシピ詳細・更新・削除 |
 | POST | `/api/recipes/{id}/viewed` | 閲覧履歴記録 |
 | GET | `/api/ingredients/suggestions` | 食材サジェスト |
@@ -116,6 +117,7 @@
 - `routers/` — HTTP 層のみ。存在確認・所有者チェックは `routers/deps.py` の依存関数で共通化
 - `openai_chat.py` — OpenAI JSON モード呼び出しの共通処理
 - `recipe_ai.py` — URL 取得〜レシピ抽出〜`RecipeCreate` 変換
+- `web_search_ai.py` — OpenAI Responses API の web_search でレシピURLを探し、`recipe_ai` で並列抽出
 - `suggest_ai.py` — AI レシピ提案 (キーワード抽出・候補選定)
 - `category_ai.py` — Jev によるカテゴリ分類
 - `reclassify_job.py` — カテゴリ一括再分類ジョブ (プロセス内メモリ管理)

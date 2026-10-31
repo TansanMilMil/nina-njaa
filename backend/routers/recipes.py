@@ -5,14 +5,22 @@ from category_ai import CategoryClassificationError, classify_recipe
 from db import repo
 from images import remove_image_file
 from ingredient_filter import is_main_ingredient
-from models import Recipe, RecipeCategoriesUpdate, RecipeCreate, RecipeDetail, RecipeUpdate
+from models import Recipe, RecipeCategoriesUpdate, RecipeCreate, RecipeDetail, RecipeUpdate, WebRecipe
 from recipe_ai import import_recipe_from_url
 from routers.auth import get_current_username, get_optional_username
 from routers.deps import get_deletable_recipe, get_editable_recipe, get_recipe_or_404
+from web_search_ai import search_web_recipes
+
+MAX_WEB_QUERY_LENGTH = 200
+_DUPLICATE_URL = "このURLのレシピはすでに登録されています"
 
 
 class RecipeFromUrlRequest(BaseModel):
     url: str
+
+
+class WebSearchRequest(BaseModel):
+    query: str
 
 
 router = APIRouter()
@@ -41,12 +49,28 @@ def search_recipes(q: str = Query(default=""), category_id: list[int] = Query(de
 @router.post("/api/ai/recipes/from-url", response_model=RecipeDetail)
 def create_recipe_from_url(body: RecipeFromUrlRequest, username: str = Depends(get_current_username)):
     if repo.get_by_url(body.url) is not None:
-        raise HTTPException(status_code=409, detail="このURLのレシピはすでに登録されています")
+        raise HTTPException(status_code=409, detail=_DUPLICATE_URL)
     return _create_and_classify(import_recipe_from_url(body.url), username)
+
+
+@router.post("/api/ai/recipes/web-search", response_model=list[WebRecipe])
+def web_search_recipes(body: WebSearchRequest, _: str = Depends(get_current_username)):
+    query = body.query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="検索条件を指定してください")
+    if len(query) > MAX_WEB_QUERY_LENGTH:
+        raise HTTPException(status_code=400, detail=f"検索条件が長すぎます（上限{MAX_WEB_QUERY_LENGTH}文字）")
+    results = []
+    for recipe in search_web_recipes(query):
+        existing = repo.get_by_url(recipe.source_url) if recipe.source_url else None
+        results.append(WebRecipe(**recipe.model_dump(), registered_recipe_id=existing.id if existing else None))
+    return results
 
 
 @router.post("/api/recipes", response_model=RecipeDetail, status_code=201)
 def create_recipe(body: RecipeCreate, username: str = Depends(get_current_username)):
+    if body.source_url and repo.get_by_url(body.source_url) is not None:
+        raise HTTPException(status_code=409, detail=_DUPLICATE_URL)
     return _create_and_classify(body, username)
 
 
