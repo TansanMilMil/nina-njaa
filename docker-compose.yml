@@ -39,7 +39,6 @@ services:
       - static:/usr/share/nginx/html
       - uploads:/usr/share/nginx/uploads
       - ./logs/nginx:/var/log/nginx
-      - ${VENUS_NGINX_BLOCKLIST_DIR:-./nginx/blocklist}:/etc/nginx/blocklist:ro
     depends_on:
       frontend:
         condition: service_completed_successfully
