@@ -1,5 +1,6 @@
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from time import monotonic
+from typing import Protocol
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from fastapi import HTTPException
@@ -102,3 +103,36 @@ def search_web_recipes(query: str) -> list[RecipeCreate]:
     if not urls:
         return []
     return extract_recipes(urls)
+
+
+class WebRecipeCache(Protocol):
+    def save_web_recipes(self, query_key: str, recipes: list[RecipeCreate]) -> None: ...
+    def get_cached_web_recipes(self, query_key: str) -> list[RecipeCreate]: ...
+
+
+def cache_key(query: str) -> str:
+    return " ".join(sorted({token.casefold() for token in query.split()}))
+
+
+def search_web_recipes_with_cache(query: str, cache: WebRecipeCache) -> list[tuple[RecipeCreate, bool]]:
+    """(レシピ, キャッシュ由来か) を返す。Web検索で足りない分は同じ条件の過去の結果で補う。"""
+    key = cache_key(query)
+    error: HTTPException | None = None
+    try:
+        fresh = search_web_recipes(query)
+    except HTTPException as e:
+        fresh, error = [], e
+    if fresh:
+        cache.save_web_recipes(key, fresh)
+    results = [(recipe, False) for recipe in fresh]
+    if len(results) < MAX_RESULTS:
+        seen = {recipe.source_url for recipe, _ in results}
+        for cached in cache.get_cached_web_recipes(key):
+            if len(results) >= MAX_RESULTS:
+                break
+            if cached.source_url not in seen:
+                seen.add(cached.source_url)
+                results.append((cached, True))
+    if error is not None and not results:
+        raise error
+    return results

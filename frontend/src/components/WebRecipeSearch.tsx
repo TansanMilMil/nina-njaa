@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { ChevronDown, ChevronUp, ExternalLink, Globe, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import RobotLoading from './RobotLoading'
 import { createRecipe, DuplicateUrlError, searchWebRecipes } from '../api'
-import type { WebRecipe } from '../api'
+import type { RecipeDetail, WebRecipe } from '../api'
 
 interface Props {
   query: string
+  onRegistered: (recipe: RecipeDetail) => void
 }
 
 function hostname(url: string): string {
@@ -19,20 +20,22 @@ function hostname(url: string): string {
   }
 }
 
-function WebRecipeCard({ recipe }: { recipe: WebRecipe }) {
-  const navigate = useNavigate()
+function WebRecipeCard({ recipe, onRegistered }: { recipe: WebRecipe; onRegistered: Props['onRegistered'] }) {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const { registered_recipe_id: registeredId, ...payload } = recipe
+  const { registered_recipe_id: initialRegisteredId, from_cache: fromCache, ...payload } = recipe
+  const [registeredId, setRegisteredId] = useState(initialRegisteredId)
 
   const handleRegister = async () => {
     setSaving(true)
     try {
       const created = await createRecipe(payload)
+      setRegisteredId(created.id)
+      onRegistered(created)
       toast.success(`「${created.name}」を登録しました`)
-      navigate(`/recipe/${created.id}`)
     } catch (e) {
       toast.error(e instanceof DuplicateUrlError ? e.message : '登録に失敗しました')
+    } finally {
       setSaving(false)
     }
   }
@@ -42,6 +45,7 @@ function WebRecipeCard({ recipe }: { recipe: WebRecipe }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold">{recipe.name}</div>
+          {fromCache && <div className="text-[11px] text-muted-foreground">前回の検索結果</div>}
           <a
             href={recipe.source_url}
             target="_blank"
@@ -96,7 +100,7 @@ function WebRecipeCard({ recipe }: { recipe: WebRecipe }) {
   )
 }
 
-export default function WebRecipeSearch({ query }: Props) {
+export default function WebRecipeSearch({ query, onRegistered }: Props) {
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<WebRecipe[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -132,7 +136,7 @@ export default function WebRecipeSearch({ query }: Props) {
           {results.length === 0 ? (
             <p className="text-sm text-muted-foreground">Webでレシピが見つかりませんでした</p>
           ) : (
-            results.map(r => <WebRecipeCard key={r.source_url} recipe={r} />)
+            results.map(r => <WebRecipeCard key={r.source_url} recipe={r} onRegistered={onRegistered} />)
           )}
         </div>
       )}

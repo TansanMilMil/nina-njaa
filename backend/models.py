@@ -70,6 +70,7 @@ class RecipeCreate(BaseModel):
 
 class WebRecipe(RecipeCreate):
     registered_recipe_id: int | None = None
+    from_cache: bool = False
 
 
 class RecipeUpdate(BaseModel):

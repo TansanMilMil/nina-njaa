@@ -9,6 +9,7 @@ from repository._cooked_log import _CookedLogMixin
 from repository._recipe_crud import _RecipeCRUDMixin
 from repository._schema import ensure_schema
 from repository._view_history import _ViewHistoryMixin
+from repository._web_recipe_cache import _WebRecipeCacheMixin
 from repository.base import RecipeRepositoryBase
 
 
@@ -19,6 +20,7 @@ class SQLiteRecipeRepository(
     _CookedLogMixin,
     _CategoryMixin,
     _AuthSessionMixin,
+    _WebRecipeCacheMixin,
     RecipeRepositoryBase,
 ):
     def __init__(self, db_path: str):

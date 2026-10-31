@@ -9,7 +9,7 @@ from models import Recipe, RecipeCategoriesUpdate, RecipeCreate, RecipeDetail, R
 from recipe_ai import import_recipe_from_url
 from routers.auth import get_current_username, get_optional_username
 from routers.deps import get_deletable_recipe, get_editable_recipe, get_recipe_or_404
-from web_search_ai import search_web_recipes
+from web_search_ai import search_web_recipes_with_cache
 
 MAX_WEB_QUERY_LENGTH = 200
 _DUPLICATE_URL = "このURLのレシピはすでに登録されています"
@@ -61,9 +61,15 @@ def web_search_recipes(body: WebSearchRequest, _: str = Depends(get_current_user
     if len(query) > MAX_WEB_QUERY_LENGTH:
         raise HTTPException(status_code=400, detail=f"検索条件が長すぎます（上限{MAX_WEB_QUERY_LENGTH}文字）")
     results = []
-    for recipe in search_web_recipes(query):
+    for recipe, from_cache in search_web_recipes_with_cache(query, repo):
         existing = repo.get_by_url(recipe.source_url) if recipe.source_url else None
-        results.append(WebRecipe(**recipe.model_dump(), registered_recipe_id=existing.id if existing else None))
+        results.append(
+            WebRecipe(
+                **recipe.model_dump(),
+                registered_recipe_id=existing.id if existing else None,
+                from_cache=from_cache,
+            )
+        )
     return results
 
 

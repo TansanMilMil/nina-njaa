@@ -115,6 +115,16 @@ _SCHEMA_STATEMENTS = (
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_as_expires_at ON auth_sessions(expires_at)",
+    """
+    CREATE TABLE IF NOT EXISTS web_recipe_cache (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        query_key TEXT NOT NULL,
+        source_url TEXT NOT NULL,
+        recipe_json TEXT NOT NULL,
+        cached_at TEXT NOT NULL,
+        UNIQUE(query_key, source_url)
+    )
+    """,
 )
 
 _SEED_CATEGORIES = (

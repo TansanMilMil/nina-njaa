@@ -1,9 +1,15 @@
+import os
+import sqlite3
+import tempfile
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from fastapi import HTTPException
+
 import web_search_ai
 from models import IngredientCreate, RecipeCreate
+from repository.sqlite import SQLiteRecipeRepository
 
 
 def citation(url):
@@ -68,6 +74,60 @@ class ExtractRecipesTest(unittest.TestCase):
              patch.object(web_search_ai, "import_recipe_from_url") as imp:
             self.assertEqual(web_search_ai.search_web_recipes("鶏肉"), [])
         imp.assert_not_called()
+
+
+class CacheKeyTest(unittest.TestCase):
+    def test_ignores_order_duplicates_case_and_spaces(self):
+        self.assertEqual(web_search_ai.cache_key("玉ねぎ　鶏肉 Tomato 鶏肉"), web_search_ai.cache_key("tomato 鶏肉 玉ねぎ"))
+
+
+class SearchWithCacheTest(unittest.TestCase):
+    def setUp(self):
+        self._tmpdir = tempfile.TemporaryDirectory()
+        path = os.path.join(self._tmpdir.name, "recipes.db")
+        sqlite3.connect(path).close()
+        self.repo = SQLiteRecipeRepository(path)
+
+    def tearDown(self):
+        self._tmpdir.cleanup()
+
+    def search(self, query, fresh=None, error=None):
+        side_effect = error if error else (lambda _: fresh)
+        with patch.object(web_search_ai, "search_web_recipes", side_effect=side_effect):
+            return web_search_ai.search_web_recipes_with_cache(query, self.repo)
+
+    def test_fills_shortfall_from_previous_results_of_same_ingredients(self):
+        self.search("鶏肉 玉ねぎ", fresh=[recipe(f"https://x/{i}") for i in range(4)])
+        result = self.search("玉ねぎ 鶏肉", fresh=[recipe("https://x/new"), recipe("https://x/1")])
+        self.assertEqual(len(result), web_search_ai.MAX_RESULTS)
+        self.assertEqual([(r.source_url, c) for r, c in result[:2]], [("https://x/new", False), ("https://x/1", False)])
+        self.assertTrue(all(c for _, c in result[2:]))
+        self.assertEqual(len({r.source_url for r, _ in result}), web_search_ai.MAX_RESULTS)
+
+    def test_does_not_use_cache_of_other_ingredients(self):
+        self.search("豚肉", fresh=[recipe("https://x/pork")])
+        self.assertEqual(self.search("鶏肉", fresh=[]), [])
+
+    def test_does_not_touch_cache_when_fresh_results_are_enough(self):
+        self.search("鶏肉", fresh=[recipe("https://x/old")])
+        result = self.search("鶏肉", fresh=[recipe(f"https://x/{i}") for i in range(5)])
+        self.assertFalse(any(c for _, c in result))
+
+    def test_falls_back_to_cache_when_web_search_fails(self):
+        self.search("鶏肉", fresh=[recipe("https://x/old")])
+        result = self.search("鶏肉", error=HTTPException(status_code=502, detail="down"))
+        self.assertEqual([(r.source_url, c) for r, c in result], [("https://x/old", True)])
+
+    def test_raises_original_error_when_failed_and_no_cache(self):
+        with self.assertRaises(HTTPException) as ctx:
+            self.search("鶏肉", error=HTTPException(status_code=502, detail="down"))
+        self.assertEqual(ctx.exception.detail, "down")
+
+    def test_keeps_recipe_content_and_updates_on_research(self):
+        self.search("鶏肉", fresh=[recipe("https://x/1", name="旧")])
+        self.search("鶏肉", fresh=[recipe("https://x/1", name="新")])
+        cached = self.repo.get_cached_web_recipes(web_search_ai.cache_key("鶏肉"))
+        self.assertEqual([(r.name, [i.name for i in r.ingredients]) for r in cached], [("新", ["じゃがいも"])])
 
 
 if __name__ == "__main__":

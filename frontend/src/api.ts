@@ -297,6 +297,7 @@ export async function uploadRecipeImage(id: number, file: File): Promise<{ image
 export interface WebRecipe extends RecipeCreatePayload {
   source_url: string
   registered_recipe_id: number | null
+  from_cache: boolean
 }
 
 export async function searchWebRecipes(query: string): Promise<WebRecipe[]> {

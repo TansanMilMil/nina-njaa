@@ -6,7 +6,7 @@ import RecipeCard from '../components/RecipeCard'
 import WebRecipeSearch from '../components/WebRecipeSearch'
 import { RecipeCardSkeleton } from '../components/Skeleton'
 import { searchRecipes, getIngredientSuggestions, getRecentViewedRecipes, getCookedLogs, getCategories } from '../api'
-import type { Recipe, Category } from '../api'
+import type { Recipe, Category, RecipeDetail } from '../api'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -115,6 +115,14 @@ export default function SearchPage() {
     return () => container.removeEventListener('scroll', handleScroll)
   }, [])
 
+  const handleWebRecipeRegistered = (recipe: RecipeDetail) => {
+    const listed: Recipe = {
+      ...recipe,
+      ingredient_names: recipe.ingredient_names?.length ? recipe.ingredient_names : recipe.ingredients.map(i => i.name),
+    }
+    setResults(prev => [listed, ...prev.filter(r => r.id !== recipe.id)])
+  }
+
   const scrollToTop = () => document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' })
 
   const showRecent = q === '' && selectedCategoryIds.length === 0
@@ -201,7 +209,7 @@ export default function SearchPage() {
             )}
             {!loading && currentUsername && queryTokens.length > 0 && (
               <div className="mb-3">
-                <WebRecipeSearch key={webQuery} query={webQuery} />
+                <WebRecipeSearch key={webQuery} query={webQuery} onRegistered={handleWebRecipeRegistered} />
               </div>
             )}
             <div className="flex flex-col gap-3">

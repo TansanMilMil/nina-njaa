@@ -78,7 +78,7 @@
 | GET | `/api/auth/me` | 認証確認 |
 | GET | `/api/recipes` | レシピ検索 (`?q=`) |
 | POST | `/api/recipes/from-url` | URLからOpenAI経由でレシピ生成・登録 |
-| POST | `/api/ai/recipes/web-search` | 検索条件でWeb検索し、見つかったレシピをAIで抽出して最大5件返す (登録はしない) |
+| POST | `/api/ai/recipes/web-search` | 検索条件でWeb検索し、見つかったレシピをAIで抽出して最大5件返す (登録はしない)。5件に満たない分は同じ条件の過去の結果 (`web_recipe_cache`) で補う |
 | GET/PUT/DELETE | `/api/recipes/{id}` | レシピ詳細・更新・削除 |
 | POST | `/api/recipes/{id}/viewed` | 閲覧履歴記録 |
 | GET | `/api/ingredients/suggestions` | 食材サジェスト |
@@ -140,6 +140,7 @@ SQLite 単一ファイル (`db/recipes.db`)。起動時に `CREATE TABLE IF NOT 
 | `recipe_bookmarks` | レシピブックマーク (UNIQUE: username+recipe_id) |
 | `ingredient_bookmarks` | 食材ブックマーク (UNIQUE: username+ingredient_name) |
 | `cooked_logs` | 料理記録 (username, recipe_id, cooked_at) |
+| `web_recipe_cache` | Web検索で抽出したレシピのキャッシュ (UNIQUE: query_key+source_url。query_key は検索語を重複除去・ソートしたもの。条件ごとに新しい順30件まで) |
 
 ---
 
