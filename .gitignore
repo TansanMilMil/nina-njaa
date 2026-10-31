@@ -43,3 +43,4 @@ Thumbs.db
 .claude/settings.local.json
 
 /logs/
+.deploy-failed
