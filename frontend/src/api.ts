@@ -102,6 +102,12 @@ export async function searchRecipes(q: string, categoryIds: number[] = []): Prom
   return res.json()
 }
 
+export async function getRandomRecipes(): Promise<Recipe[]> {
+  const res = await authFetch(`${BASE}/recipes/random`)
+  if (!res.ok) throw new Error('ランダム提案の取得に失敗しました')
+  return res.json()
+}
+
 export async function getCategories(): Promise<Category[]> {
   return fetchJsonOr<Category[]>('/categories', [])
 }

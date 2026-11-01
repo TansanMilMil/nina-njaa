@@ -12,6 +12,7 @@ from routers.deps import get_deletable_recipe, get_editable_recipe, get_recipe_o
 from web_search_ai import search_web_recipes_with_cache
 
 MAX_WEB_QUERY_LENGTH = 200
+RANDOM_RECIPE_COUNT = 50
 _DUPLICATE_URL = "このURLのレシピはすでに登録されています"
 
 
@@ -44,6 +45,11 @@ def _create_and_classify(data: RecipeCreate, username: str) -> RecipeDetail:
 @router.get("/api/recipes", response_model=list[Recipe])
 def search_recipes(q: str = Query(default=""), category_id: list[int] = Query(default=[])):
     return repo.search(q, category_ids=category_id or None)
+
+
+@router.get("/api/recipes/random", response_model=list[Recipe])
+def random_recipes():
+    return repo.random(RANDOM_RECIPE_COUNT)
 
 
 @router.post("/api/ai/recipes/from-url", response_model=RecipeDetail)

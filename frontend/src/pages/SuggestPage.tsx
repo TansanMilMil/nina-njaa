@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Sparkles } from 'lucide-react'
+import { Shuffle, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import RecipeCard from '../components/RecipeCard'
 import RobotLoading from '../components/RobotLoading'
-import { suggestRecipes } from '../api'
-import type { SuggestResult } from '../api'
+import { getRandomRecipes, suggestRecipes } from '../api'
+import type { Recipe, SuggestResult } from '../api'
 
 const EXAMPLE_QUERIES = [
   '鶏肉があります',
@@ -19,12 +19,28 @@ export default function SuggestPage() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<SuggestResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [randomRecipes, setRandomRecipes] = useState<Recipe[] | null>(null)
+
+  const handleRandom = async () => {
+    setLoading(true)
+    setError(null)
+    setResult(null)
+    setRandomRecipes(null)
+    try {
+      setRandomRecipes(await getRandomRecipes())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'ランダム提案の取得に失敗しました')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSubmit = async () => {
     if (!query.trim()) return
     setLoading(true)
     setError(null)
     setResult(null)
+    setRandomRecipes(null)
     try {
       setResult(await suggestRecipes(query.trim()))
     } catch (e) {
@@ -75,11 +91,33 @@ export default function SuggestPage() {
         >
           おすすめを聞く
         </Button>
+        <Button
+          variant="outline"
+          onClick={handleRandom}
+          disabled={loading}
+          className="w-full"
+        >
+          <Shuffle className="h-4 w-4" />
+          ランダムに50件提案
+        </Button>
       </div>
 
       {loading && <RobotLoading />}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {randomRecipes && (
+        randomRecipes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">登録されているレシピがありません。</p>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{randomRecipes.length}件をランダムに選びました</p>
+            {randomRecipes.map(r => (
+              <RecipeCard key={r.id} recipe={r} />
+            ))}
+          </div>
+        )
+      )}
 
       {result && (
         <div className="space-y-4">

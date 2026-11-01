@@ -77,6 +77,7 @@
 | POST | `/api/auth/logout` | ログアウト |
 | GET | `/api/auth/me` | 認証確認 |
 | GET | `/api/recipes` | レシピ検索 (`?q=`) |
+| GET | `/api/recipes/random` | 登録済みレシピからランダムに50件返す |
 | POST | `/api/recipes/from-url` | URLからOpenAI経由でレシピ生成・登録 |
 | POST | `/api/ai/recipes/web-search` | 検索条件でWeb検索し、見つかったレシピをAIで抽出して最大5件返す (登録はしない)。5件に満たない分は同じ条件の過去の結果 (`web_recipe_cache`) で補う |
 | GET/PUT/DELETE | `/api/recipes/{id}` | レシピ詳細・更新・削除 |

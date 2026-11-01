@@ -8,6 +8,9 @@ class RecipeRepositoryBase(ABC):
     def search(self, q: str, category_ids: list[int] | None = None) -> list[Recipe]: ...
 
     @abstractmethod
+    def random(self, limit: int) -> list[Recipe]: ...
+
+    @abstractmethod
     def get_by_id(self, id: int) -> RecipeDetail | None: ...
 
     @abstractmethod

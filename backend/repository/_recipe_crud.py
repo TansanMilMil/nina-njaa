@@ -82,6 +82,14 @@ class _RecipeCRUDMixin:
                 f"{RECIPE_SUMMARY_SELECT} {where} LIMIT {_SEARCH_LIMIT}",
                 (*token_params, *category_params),
             ).fetchall()
+        return self._rows_to_recipes_with_categories(rows)
+
+    def random(self, limit: int) -> list[Recipe]:
+        with self._connect() as con:
+            rows = con.execute(f"{RECIPE_SUMMARY_SELECT} ORDER BY RANDOM() LIMIT ?", (limit,)).fetchall()
+        return self._rows_to_recipes_with_categories(rows)
+
+    def _rows_to_recipes_with_categories(self, rows: list[sqlite3.Row]) -> list[Recipe]:
         recipes = [row_to_recipe(row) for row in rows]
         categories_map = self.get_categories_map([r.id for r in recipes])
         for recipe in recipes:
