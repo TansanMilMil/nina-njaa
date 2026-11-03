@@ -96,9 +96,14 @@ export default function CookedLogsPage() {
                   className="h-20 w-20 shrink-0 rounded-l-lg object-cover"
                 />
               )}
-              <span className={`flex-1 font-medium ${entry.image_path ? 'px-3 py-3' : 'px-4 py-3'}`}>
-                {entry.recipe_name ?? `レシピ #${entry.recipe_id}`}
-              </span>
+              <div className={`min-w-0 flex-1 ${entry.image_path ? 'px-3 py-3' : 'px-4 py-3'}`}>
+                <span className="font-medium">{entry.recipe_name ?? `レシピ #${entry.recipe_id}`}</span>
+                {entry.ingredient_names && entry.ingredient_names.length > 0 && (
+                  <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {entry.ingredient_names.join('・')}
+                  </div>
+                )}
+              </div>
               <div className="flex shrink-0 flex-col items-end gap-0.5 px-4 py-3 text-sm text-muted-foreground">
                 <span className="font-semibold text-foreground">{entry.count}回</span>
                 <span>最終: {formatDate(entry.last_cooked_at)}</span>

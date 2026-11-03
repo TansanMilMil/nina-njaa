@@ -280,6 +280,7 @@ export interface CookedLogEntry {
   count: number
   last_cooked_at: string
   latest_memo?: string | null
+  ingredient_names?: string[]
 }
 
 export async function addCookedLog(recipe_id: number, memo?: string): Promise<void> {

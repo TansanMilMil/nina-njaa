@@ -97,6 +97,7 @@ class CookedLogEntry(BaseModel):
     count: int
     last_cooked_at: str
     latest_memo: str | None = None
+    ingredient_names: list[str] = []
 
 
 class CookedLogRawEntry(BaseModel):

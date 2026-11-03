@@ -5,7 +5,11 @@ from repository._recipe_crud import _category_filter, _token_filter
 _SUMMARY_SELECT = """
     SELECT cl.recipe_id, r.name AS recipe_name, r.image_path,
            COUNT(*) AS count, MAX(cl.cooked_at) AS last_cooked_at,
-           cl.memo AS latest_memo
+           cl.memo AS latest_memo,
+           (SELECT GROUP_CONCAT(i.name, '|||')
+            FROM ingredients i
+            WHERE i.recipe_id = cl.recipe_id
+            ORDER BY i.sort_order) AS ingredient_names_concat
     FROM cooked_logs cl
     LEFT JOIN recipes r ON cl.recipe_id = r.id
 """
@@ -14,6 +18,12 @@ _ORDER_BY = {
     "count_desc": "COUNT(*) DESC",
     "last_cooked_at_desc": "MAX(cl.cooked_at) DESC",
 }
+
+
+def _row_to_entry(row) -> CookedLogEntry:
+    d = dict(row)
+    concat = d.pop("ingredient_names_concat", None)
+    return CookedLogEntry(**d, ingredient_names=concat.split("|||") if concat else [])
 
 
 class _CookedLogMixin:
@@ -32,7 +42,7 @@ class _CookedLogMixin:
             ).fetchone()
         if row is None or row["count"] == 0:
             return None
-        return CookedLogEntry(**dict(row))
+        return _row_to_entry(row)
 
     def get_cooked_logs(
         self: ConnectionProvider,
@@ -50,7 +60,7 @@ class _CookedLogMixin:
                 f"{_SUMMARY_SELECT} WHERE {' AND '.join(conditions)} GROUP BY cl.recipe_id ORDER BY {order_by}",
                 (username, *token_params, *category_params),
             ).fetchall()
-        return [CookedLogEntry(**dict(row)) for row in rows]
+        return [_row_to_entry(row) for row in rows]
 
     def get_cooked_log_entries(self: ConnectionProvider, username: str, recipe_id: int) -> list[CookedLogRawEntry]:
         with self._connect() as con:

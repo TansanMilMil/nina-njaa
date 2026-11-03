@@ -53,6 +53,12 @@ class CookedLogSearchTest(unittest.TestCase):
         self.repo.add_cooked_log("bob", self.karaage.id)
         self.assertEqual([log.count for log in self.repo.get_cooked_logs("alice", q="唐揚げ")], [1])
 
+    def test_includes_ingredient_names(self):
+        logs = {log.recipe_id: log for log in self.repo.get_cooked_logs("alice")}
+        self.assertEqual(logs[self.nikujaga.id].ingredient_names, ["じゃがいも", "牛肉"])
+        summary = self.repo.get_cooked_log_for_recipe("alice", self.salad.id)
+        self.assertEqual(summary.ingredient_names, ["じゃがいも", "きゅうり"])
+
 
 if __name__ == "__main__":
     unittest.main()
