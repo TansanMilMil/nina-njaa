@@ -1,5 +1,6 @@
 from models import CookedLogEntry, CookedLogRawEntry
 from repository._common import ConnectionProvider, now_iso
+from repository._recipe_crud import _category_filter, _token_filter
 
 _SUMMARY_SELECT = """
     SELECT cl.recipe_id, r.name AS recipe_name, r.image_path,
@@ -33,12 +34,21 @@ class _CookedLogMixin:
             return None
         return CookedLogEntry(**dict(row))
 
-    def get_cooked_logs(self: ConnectionProvider, username: str, sort: str = "last_cooked_at_desc") -> list[CookedLogEntry]:
+    def get_cooked_logs(
+        self: ConnectionProvider,
+        username: str,
+        sort: str = "last_cooked_at_desc",
+        q: str = "",
+        category_ids: list[int] | None = None,
+    ) -> list[CookedLogEntry]:
         order_by = _ORDER_BY.get(sort, _ORDER_BY["last_cooked_at_desc"])
+        token_conditions, token_params = _token_filter(q) if q else ([], [])
+        category_conditions, category_params = _category_filter(category_ids)
+        conditions = ["cl.username = ?", *token_conditions, *category_conditions]
         with self._connect() as con:
             rows = con.execute(
-                f"{_SUMMARY_SELECT} WHERE cl.username = ? GROUP BY cl.recipe_id ORDER BY {order_by}",
-                (username,),
+                f"{_SUMMARY_SELECT} WHERE {' AND '.join(conditions)} GROUP BY cl.recipe_id ORDER BY {order_by}",
+                (username, *token_params, *category_params),
             ).fetchall()
         return [CookedLogEntry(**dict(row)) for row in rows]
 

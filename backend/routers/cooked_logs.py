@@ -1,6 +1,6 @@
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from db import repo
 from models import CookedLogCreate, CookedLogEntry, CookedLogRawEntry
@@ -25,9 +25,11 @@ def add_cooked_log(
 @router.get("/api/cooked-logs", response_model=list[CookedLogEntry])
 def get_cooked_logs(
     sort: CookedLogSort = "last_cooked_at_desc",
+    q: str = Query(default=""),
+    category_id: list[int] = Query(default=[]),
     username: str = Depends(get_current_username),
 ):
-    return repo.get_cooked_logs(username, sort)
+    return repo.get_cooked_logs(username, sort, q=q, category_ids=category_id or None)
 
 
 @router.get("/api/cooked-logs/{recipe_id}", response_model=CookedLogEntry | None)

@@ -289,8 +289,19 @@ export async function addCookedLog(recipe_id: number, memo?: string): Promise<vo
 
 export type CookedLogSort = 'last_cooked_at_desc' | 'count_desc'
 
-export async function getCookedLogs(sort: CookedLogSort = 'last_cooked_at_desc'): Promise<CookedLogEntry[]> {
-  return fetchJsonOr<CookedLogEntry[]>(`/cooked-logs?sort=${sort}`, [])
+export interface CookedLogFilter {
+  q?: string
+  categoryIds?: number[]
+}
+
+export async function getCookedLogs(
+  sort: CookedLogSort = 'last_cooked_at_desc',
+  { q = '', categoryIds = [] }: CookedLogFilter = {},
+): Promise<CookedLogEntry[]> {
+  const params = new URLSearchParams({ sort })
+  if (q) params.set('q', q)
+  categoryIds.forEach(id => params.append('category_id', String(id)))
+  return fetchJsonOr<CookedLogEntry[]>(`/cooked-logs?${params.toString()}`, [])
 }
 
 export async function getCookedLogForRecipe(recipe_id: number): Promise<CookedLogEntry | null> {

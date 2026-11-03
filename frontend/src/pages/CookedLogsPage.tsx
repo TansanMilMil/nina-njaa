@@ -1,8 +1,10 @@
 import { useState, useEffect, useContext } from 'react'
 import { Link } from 'react-router'
 import { UserContext } from '../contexts/UserContext'
-import { getCookedLogs } from '../api'
-import type { CookedLogEntry, CookedLogSort } from '../api'
+import SearchBar from '../components/SearchBar'
+import CategoryFilter from '../components/CategoryFilter'
+import { getCategories, getCookedLogs } from '../api'
+import type { Category, CookedLogEntry, CookedLogSort } from '../api'
 
 function formatDate(isoString: string): string {
   const d = new Date(isoString)
@@ -14,25 +16,43 @@ export default function CookedLogsPage() {
   const [logs, setLogs] = useState<CookedLogEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [sortOrder, setSortOrder] = useState<CookedLogSort>('last_cooked_at_desc')
+  const [q, setQ] = useState('')
+  const [categories, setCategories] = useState<Category[]>([])
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([])
+  const filtering = q !== '' || selectedCategoryIds.length > 0
 
   useEffect(() => {
-    if (currentUsername) {
-      setLoading(true)
-      getCookedLogs(sortOrder).then(data => {
-        setLogs(data)
-        setLoading(false)
-      })
-    } else {
+    getCategories().then(setCategories).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!currentUsername) {
       setLogs([])
       setLoading(false)
+      return
     }
-  }, [currentUsername, sortOrder])
+    let cancelled = false
+    setLoading(true)
+    getCookedLogs(sortOrder, { q, categoryIds: selectedCategoryIds }).then(data => {
+      if (!cancelled) {
+        setLogs(data)
+        setLoading(false)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [currentUsername, sortOrder, q, selectedCategoryIds])
+
+  const toggleCategory = (id: number) => {
+    setSelectedCategoryIds(prev => (prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]))
+  }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">料理記録</h1>
-        {!loading && logs.length > 0 && (
+        {currentUsername && (
           <select
             value={sortOrder}
             onChange={e => setSortOrder(e.target.value as CookedLogSort)}
@@ -44,6 +64,13 @@ export default function CookedLogsPage() {
         )}
       </div>
 
+      {currentUsername && (
+        <div className="flex flex-col gap-2">
+          <SearchBar value={q} onChange={setQ} />
+          <CategoryFilter categories={categories} selectedIds={selectedCategoryIds} onToggle={toggleCategory} />
+        </div>
+      )}
+
       {loading ? (
         <div className="flex flex-col gap-3">
           {Array.from({ length: 3 }, (_, i) => (
@@ -51,7 +78,9 @@ export default function CookedLogsPage() {
           ))}
         </div>
       ) : logs.length === 0 ? (
-        <p className="text-sm text-muted-foreground">まだ料理記録がありません</p>
+        <p className="text-sm text-muted-foreground">
+          {filtering ? '条件に合う料理記録がありません' : 'まだ料理記録がありません'}
+        </p>
       ) : (
         <div className="flex flex-col gap-2">
           {logs.map(entry => (
