@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends
 
 from db import repo
@@ -7,6 +9,8 @@ from routers.auth import get_current_username
 router = APIRouter()
 
 RECIPE_HISTORY_LIMIT = 50
+COOK_AGAIN_LIMIT = 5
+COOK_AGAIN_AFTER = timedelta(days=30)
 
 
 @router.get("/api/history/recipes", response_model=list[Recipe])
@@ -38,3 +42,9 @@ def get_recipe_history_entries(username: str = Depends(get_current_username)):
 @router.get("/api/history/ingredients", response_model=list[str])
 def get_ingredient_history(username: str = Depends(get_current_username)):
     return repo.get_recent_viewed_ingredients(username)
+
+
+@router.get("/api/history/cook-again", response_model=list[Recipe])
+def get_cook_again_recipes(username: str = Depends(get_current_username)):
+    before = (datetime.now(timezone.utc) - COOK_AGAIN_AFTER).isoformat()
+    return repo.get_random_recipes_last_cooked_before(username, before, COOK_AGAIN_LIMIT)

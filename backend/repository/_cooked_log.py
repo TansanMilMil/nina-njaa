@@ -1,5 +1,5 @@
-from models import CookedLogEntry, CookedLogRawEntry
-from repository._common import ConnectionProvider, now_iso
+from models import CookedLogEntry, CookedLogRawEntry, Recipe
+from repository._common import RECIPE_SUMMARY_SELECT, ConnectionProvider, now_iso, row_to_recipe
 from repository._recipe_crud import _category_filter, _token_filter
 
 _SUMMARY_SELECT = """
@@ -61,6 +61,26 @@ class _CookedLogMixin:
                 (username, *token_params, *category_params),
             ).fetchall()
         return [_row_to_entry(row) for row in rows]
+
+    def get_random_recipes_last_cooked_before(
+        self: ConnectionProvider, username: str, before: str, limit: int
+    ) -> list[Recipe]:
+        with self._connect() as con:
+            rows = con.execute(
+                f"""
+                {RECIPE_SUMMARY_SELECT}
+                WHERE r.id IN (
+                    SELECT recipe_id FROM cooked_logs
+                    WHERE username = ?
+                    GROUP BY recipe_id
+                    HAVING MAX(cooked_at) < ?
+                )
+                ORDER BY RANDOM()
+                LIMIT ?
+                """,
+                (username, before, limit),
+            ).fetchall()
+        return [row_to_recipe(row) for row in rows]
 
     def get_cooked_log_entries(self: ConnectionProvider, username: str, recipe_id: int) -> list[CookedLogRawEntry]:
         with self._connect() as con:

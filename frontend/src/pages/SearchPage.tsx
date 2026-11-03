@@ -6,7 +6,7 @@ import RecipeCard from '../components/RecipeCard'
 import WebRecipeSearch from '../components/WebRecipeSearch'
 import CategoryFilter from '../components/CategoryFilter'
 import { RecipeCardSkeleton } from '../components/Skeleton'
-import { searchRecipes, getIngredientSuggestions, getRecentViewedRecipes, getCookedLogs, getCategories } from '../api'
+import { searchRecipes, getIngredientSuggestions, getRecentViewedRecipes, getCookAgainRecipes, getCookedLogs, getCategories } from '../api'
 import type { Recipe, Category, RecipeDetail } from '../api'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +34,7 @@ export default function SearchPage() {
   const [suggestions, setSuggestions] = useState<string[]>([])
   const { isBookmarked } = useBookmarks()
   const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([])
+  const [cookAgainRecipes, setCookAgainRecipes] = useState<Recipe[]>([])
   const [loadingRecent, setLoadingRecent] = useState(false)
   const [cookedCountMap, setCookedCountMap] = useState<Map<number, number>>(new Map())
   const [showScrollTop, setShowScrollTop] = useState(false)
@@ -54,13 +55,15 @@ export default function SearchPage() {
   useEffect(() => {
     if (currentUsername) {
       setLoadingRecent(true)
-      Promise.all([getRecentViewedRecipes(), getCookedLogs()]).then(([recipes, logs]) => {
+      Promise.all([getRecentViewedRecipes(), getCookAgainRecipes(), getCookedLogs()]).then(([recipes, cookAgain, logs]) => {
         setRecentRecipes(recipes)
+        setCookAgainRecipes(cookAgain)
         setCookedCountMap(new Map(logs.map(l => [l.recipe_id, l.count])))
         setLoadingRecent(false)
       }).catch(() => setLoadingRecent(false))
     } else {
       setRecentRecipes([])
+      setCookAgainRecipes([])
       setCookedCountMap(new Map())
     }
   }, [currentUsername])
@@ -164,19 +167,29 @@ export default function SearchPage() {
           <CategoryFilter categories={categories} selectedIds={selectedCategoryIds} onToggle={toggleCategory} />
         </div>
         {showRecent ? (
-          <div className="flex flex-col">
-            <h2 className="mb-3 text-lg font-semibold">最近みたレシピ</h2>
-            {loadingRecent ? (
-              <div className="flex flex-col gap-3">
-                {Array.from({ length: 3 }, (_, i) => <RecipeCardSkeleton key={i} />)}
-              </div>
-            ) : recentRecipes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">まだレシピを閲覧していません</p>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {recentRecipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked={isBookmarked(r.id)} cookedCount={cookedCountMap.get(r.id) ?? 0} />)}
+          <div className="flex flex-col gap-6">
+            {!loadingRecent && cookAgainRecipes.length > 0 && (
+              <div className="flex flex-col">
+                <h2 className="mb-3 text-lg font-semibold">久々に作りませんか？</h2>
+                <div className="flex flex-col gap-3">
+                  {cookAgainRecipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked={isBookmarked(r.id)} cookedCount={cookedCountMap.get(r.id) ?? 0} />)}
+                </div>
               </div>
             )}
+            <div className="flex flex-col">
+              <h2 className="mb-3 text-lg font-semibold">最近みたレシピ</h2>
+              {loadingRecent ? (
+                <div className="flex flex-col gap-3">
+                  {Array.from({ length: 3 }, (_, i) => <RecipeCardSkeleton key={i} />)}
+                </div>
+              ) : recentRecipes.length === 0 ? (
+                <p className="text-sm text-muted-foreground">まだレシピを閲覧していません</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {recentRecipes.map(r => <RecipeCard key={r.id} recipe={r} isBookmarked={isBookmarked(r.id)} cookedCount={cookedCountMap.get(r.id) ?? 0} />)}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <div className="flex flex-col">

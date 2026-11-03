@@ -216,6 +216,10 @@ export async function getRecentViewedRecipes(): Promise<Recipe[]> {
   return fetchJsonOr<Recipe[]>('/history/recipes', [])
 }
 
+export async function getCookAgainRecipes(): Promise<Recipe[]> {
+  return fetchJsonOr<Recipe[]>('/history/cook-again', [])
+}
+
 export type RecipeHistoryEntry =
   | { kind: 'viewed'; at: string; recipe: Recipe; web_recipe: null }
   | { kind: 'web_search'; at: string; recipe: null; web_recipe: WebRecipe }
