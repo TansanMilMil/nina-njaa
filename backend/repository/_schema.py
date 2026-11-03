@@ -153,6 +153,7 @@ _SEED_CATEGORIES = (
     "洋食",
     "中華",
     "エスニック",
+    "カクテル",
 )
 
 _ADD_COLUMN_MIGRATIONS = (
