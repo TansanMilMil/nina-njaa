@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Link } from 'react-router'
-import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed, Sparkles, LogIn, FilePen, Tags, Loader2 } from 'lucide-react'
+import { X, PlusCircle, Bookmark, Menu, LogOut, Clock, UtensilsCrossed, Sparkles, Lightbulb, LogIn, FilePen, Tags, Loader2 } from 'lucide-react'
 import SearchPage from './pages/SearchPage'
 import RecipePage from './pages/RecipePage'
 import BookmarksPage from './pages/BookmarksPage'
@@ -195,7 +195,12 @@ export default function App() {
                   </Button>
                   <Button size="icon" variant="ghost" asChild aria-label="おすすめ">
                     <Link to="/suggest">
-                      <Sparkles className="h-5 w-5" />
+                      <Lightbulb className="h-5 w-5" />
+                    </Link>
+                  </Button>
+                  <Button size="icon" variant="ghost" asChild aria-label="料理記録">
+                    <Link to="/cooked-logs">
+                      <UtensilsCrossed className="h-5 w-5" />
                     </Link>
                   </Button>
                   <Button size="icon" variant="ghost" asChild aria-label="ブックマーク">
@@ -221,14 +226,6 @@ export default function App() {
                         >
                           <Clock className="h-4 w-4" />
                           最近見たもの
-                        </Link>
-                        <Link
-                          to="/cooked-logs"
-                          onClick={() => setMenuOpen(false)}
-                          className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-muted"
-                        >
-                          <UtensilsCrossed className="h-4 w-4" />
-                          料理記録
                         </Link>
                         <button
                           type="button"
