@@ -41,6 +41,18 @@ class CitedUrlsTest(unittest.TestCase):
             ["https://a.example/r/1", "https://b.example/r?id=2"],
         )
 
+    def test_skips_list_pages(self):
+        response = SimpleNamespace(output=[message(
+            citation("https://a.example/"),
+            citation("https://a.example/search?q=鶏肉"),
+            citation("https://a.example/categories/chicken"),
+            citation("https://a.example/lists/123"),
+            citation("https://a.example/ranking/chicken"),
+            citation("https://a.example/matome/1"),
+            citation("https://a.example/recipes/456"),
+        )])
+        self.assertEqual(web_search_ai._cited_urls(response), ["https://a.example/recipes/456"])
+
     def test_limits_candidate_count(self):
         urls = [citation(f"https://e.example/{i}") for i in range(20)]
         response = SimpleNamespace(output=[message(*urls)])

@@ -2,6 +2,7 @@
 
 import http.client
 import ipaddress
+import logging
 import socket
 import ssl
 import time
@@ -16,10 +17,14 @@ _REDIRECTS = {301, 302, 303, 307, 308}
 _GLOBAL_IPV6 = ipaddress.ip_network("2000::/3")
 _TOO_LARGE = "取得するページのサイズが上限を超えています（2MiB）"
 _REQUEST_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; nina-njaa-recipe-fetcher/1.0)",
     "Accept": "text/html, application/xhtml+xml, text/plain",
+    "Accept-Language": "ja,en;q=0.8",
     "Accept-Encoding": "identity",
     "Connection": "close",
 }
+
+logger = logging.getLogger(__name__)
 
 
 def _reject(message: str) -> HTTPException:
@@ -113,6 +118,7 @@ def _redirect_target(response: http.client.HTTPResponse, current: httpx.URL, hop
 
 def _validate_response_headers(response: http.client.HTTPResponse) -> None:
     if not 200 <= response.status < 300:
+        logger.warning("fetch got non-success status=%s", response.status)
         raise _reject("URLの取得先が正常な応答を返しませんでした")
     if response.getheader("Content-Encoding", "identity").strip().lower() != "identity":
         raise _reject("圧縮されたページは取得できません")
