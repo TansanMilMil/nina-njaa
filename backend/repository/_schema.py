@@ -125,6 +125,17 @@ _SCHEMA_STATEMENTS = (
         UNIQUE(query_key, source_url)
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS web_search_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        source_url TEXT NOT NULL,
+        recipe_json TEXT NOT NULL,
+        searched_at TEXT NOT NULL,
+        UNIQUE(username, source_url)
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_wsh_username_searched_at ON web_search_history(username, searched_at)",
 )
 
 _SEED_CATEGORIES = (

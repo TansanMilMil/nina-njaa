@@ -60,14 +60,16 @@ def create_recipe_from_url(body: RecipeFromUrlRequest, username: str = Depends(g
 
 
 @router.post("/api/ai/recipes/web-search", response_model=list[WebRecipe])
-def web_search_recipes(body: WebSearchRequest, _: str = Depends(get_current_username)):
+def web_search_recipes(body: WebSearchRequest, username: str = Depends(get_current_username)):
     query = body.query.strip()
     if not query:
         raise HTTPException(status_code=400, detail="検索条件を指定してください")
     if len(query) > MAX_WEB_QUERY_LENGTH:
         raise HTTPException(status_code=400, detail=f"検索条件が長すぎます（上限{MAX_WEB_QUERY_LENGTH}文字）")
+    found = search_web_recipes_with_cache(query, repo)
+    repo.record_web_search_history(username, [recipe for recipe, _ in found])
     results = []
-    for recipe, from_cache in search_web_recipes_with_cache(query, repo):
+    for recipe, from_cache in found:
         existing = repo.get_by_url(recipe.source_url) if recipe.source_url else None
         results.append(
             WebRecipe(

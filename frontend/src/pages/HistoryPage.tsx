@@ -1,11 +1,13 @@
 import { useState, useEffect, useContext } from 'react'
 import { Link } from 'react-router'
 import { UserContext } from '../contexts/UserContext'
+import { Globe } from 'lucide-react'
 import RecipeCard from '../components/RecipeCard'
+import { WebRecipeCard } from '../components/WebRecipeSearch'
 import { RecipeCardSkeleton } from '../components/Skeleton'
 import { useBookmarks } from '../hooks/useBookmarks'
-import { getRecentViewedRecipes, getRecentViewedIngredients, getCookedLogs } from '../api'
-import type { Recipe } from '../api'
+import { getRecipeHistoryEntries, getRecentViewedIngredients, getCookedLogs } from '../api'
+import type { RecipeHistoryEntry } from '../api'
 import { cn } from '@/lib/utils'
 
 type Tab = 'recipes' | 'ingredients'
@@ -13,7 +15,7 @@ type Tab = 'recipes' | 'ingredients'
 export default function HistoryPage() {
   const currentUsername = useContext(UserContext)
   const { bookmarks } = useBookmarks()
-  const [recipes, setRecipes] = useState<Recipe[]>([])
+  const [recipes, setRecipes] = useState<RecipeHistoryEntry[]>([])
   const [ingredients, setIngredients] = useState<string[]>([])
   const [loadingRecipes, setLoadingRecipes] = useState(true)
   const [loadingIngredients, setLoadingIngredients] = useState(true)
@@ -22,7 +24,7 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (currentUsername) {
-      getRecentViewedRecipes().then(data => {
+      getRecipeHistoryEntries().then(data => {
         setRecipes(data)
         setLoadingRecipes(false)
       })
@@ -72,8 +74,21 @@ export default function HistoryPage() {
           <p className="text-sm text-muted-foreground">まだレシピを見ていません</p>
         ) : (
           <div className="flex flex-col gap-3">
-            {recipes.map(r => (
-              <RecipeCard key={r.id} recipe={r} isBookmarked={bookmarks.includes(r.id)} cookedCount={cookedCountMap.get(r.id) ?? 0} />
+            {recipes.map(entry => entry.kind === 'viewed' ? (
+              <RecipeCard
+                key={`viewed-${entry.recipe.id}`}
+                recipe={entry.recipe}
+                isBookmarked={bookmarks.includes(entry.recipe.id)}
+                cookedCount={cookedCountMap.get(entry.recipe.id) ?? 0}
+              />
+            ) : (
+              <div key={`web-${entry.web_recipe.source_url}`} className="flex flex-col gap-1">
+                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <Globe className="h-3 w-3" />
+                  Web検索で見つけたレシピ
+                </span>
+                <WebRecipeCard recipe={entry.web_recipe} onRegistered={() => {}} />
+              </div>
             ))}
           </div>
         )

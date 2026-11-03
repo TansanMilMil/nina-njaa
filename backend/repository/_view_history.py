@@ -62,29 +62,37 @@ class _ViewHistoryMixin:
             _trim_history(con, "viewed_recipes", username)
 
     def get_recent_viewed_recipes(self: ConnectionProvider, username: str, limit: int = 30) -> list[Recipe]:
+        return [recipe for recipe, _ in self.get_recent_viewed_recipe_entries(username, limit)]
+
+    def get_recent_viewed_recipe_entries(
+        self: ConnectionProvider, username: str, limit: int = 30
+    ) -> list[tuple[Recipe, str]]:
+        """(レシピ, 最後に見た日時) を新しい順に返す。"""
         with self._connect() as con:
-            recipe_ids = [
-                row["recipe_id"]
-                for row in con.execute(
-                    """
-                    SELECT recipe_id
-                    FROM viewed_recipes
-                    WHERE username = ?
-                    GROUP BY recipe_id
-                    ORDER BY MAX(id) DESC
-                    LIMIT ?
-                    """,
-                    (username, limit),
-                ).fetchall()
-            ]
-            if not recipe_ids:
+            viewed = con.execute(
+                """
+                SELECT recipe_id, MAX(viewed_at) AS last_viewed_at
+                FROM viewed_recipes
+                WHERE username = ?
+                GROUP BY recipe_id
+                ORDER BY MAX(id) DESC
+                LIMIT ?
+                """,
+                (username, limit),
+            ).fetchall()
+            if not viewed:
                 return []
+            recipe_ids = [row["recipe_id"] for row in viewed]
             rows = con.execute(
                 f"{RECIPE_SUMMARY_SELECT} WHERE r.id IN ({placeholders(recipe_ids)})",
                 tuple(recipe_ids),
             ).fetchall()
         recipes_by_id = {row["id"]: row_to_recipe(row) for row in rows}
-        return [recipes_by_id[rid] for rid in recipe_ids if rid in recipes_by_id]
+        return [
+            (recipes_by_id[row["recipe_id"]], row["last_viewed_at"])
+            for row in viewed
+            if row["recipe_id"] in recipes_by_id
+        ]
 
     def get_recent_viewed_ingredients(self: ConnectionProvider, username: str, limit: int = 100) -> list[str]:
         with self._connect() as con:

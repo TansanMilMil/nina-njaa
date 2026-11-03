@@ -20,7 +20,7 @@ function hostname(url: string): string {
   }
 }
 
-function WebRecipeCard({ recipe, onRegistered }: { recipe: WebRecipe; onRegistered: Props['onRegistered'] }) {
+export function WebRecipeCard({ recipe, onRegistered }: { recipe: WebRecipe; onRegistered: Props['onRegistered'] }) {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const { registered_recipe_id: initialRegisteredId, from_cache: fromCache, ...payload } = recipe

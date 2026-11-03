@@ -10,6 +10,7 @@ from repository._recipe_crud import _RecipeCRUDMixin
 from repository._schema import ensure_schema
 from repository._view_history import _ViewHistoryMixin
 from repository._web_recipe_cache import _WebRecipeCacheMixin
+from repository._web_search_history import _WebSearchHistoryMixin
 from repository.base import RecipeRepositoryBase
 
 
@@ -21,6 +22,7 @@ class SQLiteRecipeRepository(
     _CategoryMixin,
     _AuthSessionMixin,
     _WebRecipeCacheMixin,
+    _WebSearchHistoryMixin,
     RecipeRepositoryBase,
 ):
     def __init__(self, db_path: str):

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -71,6 +73,13 @@ class RecipeCreate(BaseModel):
 class WebRecipe(RecipeCreate):
     registered_recipe_id: int | None = None
     from_cache: bool = False
+
+
+class RecipeHistoryEntry(BaseModel):
+    kind: Literal["viewed", "web_search"]
+    at: str
+    recipe: Recipe | None = None
+    web_recipe: WebRecipe | None = None
 
 
 class RecipeUpdate(BaseModel):
