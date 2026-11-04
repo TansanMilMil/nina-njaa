@@ -42,3 +42,27 @@ export function groupIngredients(ingredients: Ingredient[]): [string | null, Ing
   }
   return groups
 }
+
+function formatShoppingListTitle(recipeName: string | null, multiplier: number): string {
+  const name = recipeName?.trim() || 'レシピ'
+  return multiplier === 1 ? `【${name}】` : `【${name}（${formatScaledNumber(multiplier)}倍）】`
+}
+
+function formatShoppingListLine(ing: Ingredient, multiplier: number): string {
+  const amount = `${scaleQuantity(ing.quantity, multiplier)}${ing.unit ?? ''}`
+  const note = ing.note ? `（${ing.note}）` : ''
+  return [ing.name, amount].filter(Boolean).join(' ') + note
+}
+
+export function buildShoppingListText(
+  recipeName: string | null,
+  ingredients: Ingredient[],
+  multiplier: number,
+): string {
+  const lines = [formatShoppingListTitle(recipeName, multiplier)]
+  for (const [groupName, items] of groupIngredients(ingredients)) {
+    if (groupName) lines.push('', `■${groupName}`)
+    for (const ing of items) lines.push(formatShoppingListLine(ing, multiplier))
+  }
+  return lines.join('\n')
+}
