@@ -4,11 +4,13 @@ import type { Ingredient } from '../api'
 import { groupIngredients, scaleQuantity } from '../lib/ingredients'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import ShareIngredientsButton from './ShareIngredientsButton'
 import { cn } from '@/lib/utils'
 
 const MULTIPLIER_PRESETS = [0.5, 1, 2, 3]
 
 interface RecipeIngredientsSectionProps {
+  recipeName: string | null
   ingredients: Ingredient[]
   multiplier: number
   multiplierInput: string
@@ -19,6 +21,7 @@ interface RecipeIngredientsSectionProps {
 }
 
 export default function RecipeIngredientsSection({
+  recipeName,
   ingredients,
   multiplier,
   multiplierInput,
@@ -31,7 +34,14 @@ export default function RecipeIngredientsSection({
 
   return (
     <section>
-      <h2 className="mb-3 text-lg font-semibold">材料</h2>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">材料</h2>
+        <ShareIngredientsButton
+          recipeName={recipeName}
+          ingredients={ingredients}
+          multiplier={multiplier}
+        />
+      </div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="text-sm text-muted-foreground">分量</span>
         {MULTIPLIER_PRESETS.map(v => (
