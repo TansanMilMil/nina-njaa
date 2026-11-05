@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { Star } from 'lucide-react'
 import type { Recipe } from '../api'
 import { cn } from '@/lib/utils'
+import RecipeImage from './RecipeImage'
 
 interface RecipeCardProps {
   recipe: Recipe
@@ -20,14 +21,12 @@ export default function RecipeCard({ recipe, isBookmarked, onBookmarkToggle, coo
       )}
     >
       <div className="flex gap-3">
-        {recipe.image_path && (
-          <img
-            src={`/uploads/${recipe.image_path}`}
-            alt={recipe.name ?? ''}
-            className="h-20 w-20 shrink-0 rounded-l-lg object-cover"
-          />
-        )}
-        <div className={cn('min-w-0 flex-1 py-2.5', recipe.image_path ? 'pr-3' : 'px-3')}>
+        <RecipeImage
+          imagePath={recipe.image_path}
+          alt={recipe.name}
+          className="h-20 w-20 shrink-0 rounded-l-lg"
+        />
+        <div className="min-w-0 flex-1 py-2.5 pr-3">
           <div className="flex items-center gap-1.5">
             <span className="text-sm font-semibold">{recipe.name}</span>
             {isBookmarked && onBookmarkToggle ? (

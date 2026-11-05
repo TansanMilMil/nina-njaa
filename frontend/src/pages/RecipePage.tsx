@@ -8,6 +8,7 @@ import ImageLightbox from '../components/ImageLightbox'
 import LinkifiedText from '../components/LinkifiedText'
 import RecipeEditForm from '../components/RecipeEditForm'
 import RecipeIngredientsSection from '../components/RecipeIngredientsSection'
+import RecipeImage from '../components/RecipeImage'
 import { RecipePageSkeleton } from '../components/Skeleton'
 import { useBookmarks } from '../hooks/useBookmarks'
 import { useCookLog } from '../hooks/useCookLog'
@@ -97,19 +98,21 @@ export default function RecipePage() {
   return (
     <article className="flex flex-col gap-5">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
-        {recipe.image_path && (
+        {recipe.image_path ? (
           <button
             type="button"
             onClick={() => setIsImageLightboxOpen(true)}
             className="block w-full cursor-zoom-in lg:w-72 lg:shrink-0"
             aria-label="画像を拡大表示"
           >
-            <img
-              src={`/uploads/${recipe.image_path}`}
-              alt={recipe.name ?? ''}
-              className="w-full rounded-lg object-cover max-h-64 lg:h-72 lg:max-h-none"
+            <RecipeImage
+              imagePath={recipe.image_path}
+              alt={recipe.name}
+              className="w-full rounded-lg max-h-64 lg:h-72 lg:max-h-none"
             />
           </button>
+        ) : (
+          <RecipeImage className="h-40 w-full rounded-lg lg:h-72 lg:w-72 lg:shrink-0" iconClassName="h-12 w-12" />
         )}
 
         <div className="flex flex-col gap-5 lg:flex-1">

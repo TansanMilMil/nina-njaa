@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { UserContext } from '../contexts/UserContext'
 import SearchBar from '../components/SearchBar'
 import CategoryFilter from '../components/CategoryFilter'
+import RecipeImage from '../components/RecipeImage'
 import { getCategories, getCookedLogs } from '../api'
 import type { Category, CookedLogEntry, CookedLogSort } from '../api'
 
@@ -89,14 +90,12 @@ export default function CookedLogsPage() {
               to={`/cooked-logs/${entry.recipe_id}`}
               className="flex items-center justify-between rounded-lg border bg-card text-card-foreground shadow-xs transition-colors hover:bg-accent"
             >
-              {entry.image_path && (
-                <img
-                  src={`/uploads/${entry.image_path}`}
-                  alt={entry.recipe_name ?? ''}
-                  className="h-20 w-20 shrink-0 rounded-l-lg object-cover"
-                />
-              )}
-              <div className={`min-w-0 flex-1 ${entry.image_path ? 'px-3 py-3' : 'px-4 py-3'}`}>
+              <RecipeImage
+                imagePath={entry.image_path}
+                alt={entry.recipe_name}
+                className="h-20 w-20 shrink-0 rounded-l-lg"
+              />
+              <div className="min-w-0 flex-1 px-3 py-3">
                 <span className="font-medium">{entry.recipe_name ?? `レシピ #${entry.recipe_id}`}</span>
                 {entry.ingredient_names && entry.ingredient_names.length > 0 && (
                   <div className="mt-0.5 truncate text-xs text-muted-foreground">
