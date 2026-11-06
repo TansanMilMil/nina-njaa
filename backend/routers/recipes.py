@@ -117,6 +117,10 @@ def get_ingredient_suggestions(username: str = Depends(get_current_username)):
 
 @router.put("/api/recipes/{id}", response_model=RecipeDetail)
 def update_recipe(id: int, body: RecipeUpdate, _: RecipeDetail = Depends(get_editable_recipe)):
+    if body.source_url:
+        existing = repo.get_by_url(body.source_url)
+        if existing is not None and existing.id != id:
+            raise HTTPException(status_code=409, detail=_DUPLICATE_URL)
     updated = repo.update(id, body)
     if updated is not None and not repo.is_categories_locked(id):
         _auto_classify_and_set(updated)

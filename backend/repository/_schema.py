@@ -175,6 +175,7 @@ def ensure_schema(con: sqlite3.Connection) -> None:
         except sqlite3.OperationalError:
             pass
     _migrate_source_url_nullable(con)
+    con.execute("UPDATE recipes SET source_url = NULL WHERE TRIM(source_url) = ''")
     _backfill_readings(con)
     _seed_categories(con)
 

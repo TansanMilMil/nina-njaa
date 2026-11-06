@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class Ingredient(BaseModel):
@@ -62,12 +62,21 @@ class StepCreate(BaseModel):
     description: str
 
 
+def _blank_to_none(v: str | None) -> str | None:
+    if v is None:
+        return None
+    v = v.strip()
+    return v or None
+
+
 class RecipeCreate(BaseModel):
     name: str
     source_url: str | None = None
     servings: int | None = None
     ingredients: list[IngredientCreate] = []
     steps: list[StepCreate] = []
+
+    _normalize_source_url = field_validator("source_url")(_blank_to_none)
 
 
 class WebRecipe(RecipeCreate):
@@ -84,10 +93,12 @@ class RecipeHistoryEntry(BaseModel):
 
 class RecipeUpdate(BaseModel):
     name: str
-    source_url: str
+    source_url: str | None = None
     servings: int | None = None
     ingredients: list[IngredientCreate] = []
     steps: list[StepCreate] = []
+
+    _normalize_source_url = field_validator("source_url")(_blank_to_none)
 
 
 class CookedLogEntry(BaseModel):
